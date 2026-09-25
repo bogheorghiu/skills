@@ -27,8 +27,7 @@ def run(ov, *args, day=None):
     env = {k: v for k, v in os.environ.items()
            if k not in ("TRIP_SCOUT_HOME", "CLAUDE_PLUGIN_DATA", "XDG_DATA_HOME", "TRIP_SCOUT_TEST_TODAY")}
     env["TRIP_SCOUT_HOME"] = str(ov)
-    if day:
-        env["TRIP_SCOUT_TEST_TODAY"] = day.isoformat()
+    env["TRIP_SCOUT_TEST_TODAY"] = (day or TODAY).isoformat()  # no race at midnight
     p = subprocess.run([sys.executable, str(TOOL), *args], capture_output=True, text=True, env=env)
     return p.returncode, p.stdout + p.stderr
 
@@ -65,10 +64,18 @@ with tempfile.TemporaryDirectory() as t:
     case("evidence without a handle is refused", rc == 1 and "REFUSED evidence:" in out, out)
     rc, out = run(ov, "set", "apify-ryanair", "--status", "degraded", "--evidence", URL + "\nstatus: working")
     case("a newline in a value is refused (no injected second key)", rc == 1 and "one line" in out, out)
+    rc, out = run(ov, "set", "apify-ryanair", "--add-caveat", "x\u2028drop_removed: foo", "--evidence", URL)
+    case("a Unicode line separator is refused too", rc == 1 and "one line" in out, out)
+    for vague in ("it's been failing lately and it doesn't return prices", "Counterproductive"):
+        rc, out = run(ov, "set", "apify-ryanair", "--status", "broken", "--evidence", vague)
+        case(f"vague evidence is refused even for broken: {vague[:24]!r}", rc == 1 and "REFUSED evidence:" in out, out)
+    rc, out = run(ov, "set", "apify-ryanair", "--status", "broken", "--evidence", '"Actor memo23/ryanair-scraper was not found"')
+    case("a double-quoted error line counts as evidence", rc == 0, out)
+    (ov / "sources" / "apify-ryanair.md").unlink(); (ov / "CHANGELOG.md").unlink()
 
     # --- a normal write ---
     rc, out = run(ov, "set", "apify-ryanair", "--status", "degraded", "--evidence", URL, "--dry-run")
-    case("dry-run prints a diff and writes nothing", rc == 0 and "+status: degraded" in out and not (ov / "sources").exists(), out)
+    case("dry-run prints a diff and writes nothing", rc == 0 and "+status: degraded" in out and not (ov / "sources" / "apify-ryanair.md").exists(), out)
     rc, out = run(ov, "set", "apify-ryanair", "--status", "degraded", "--evidence", URL, "--last-verified", "today")
     written = ov / "sources" / "apify-ryanair.md"
     case("set writes the overlay copy", rc == 0 and body_line(written, "status") == "degraded", out)
@@ -77,6 +84,13 @@ with tempfile.TemporaryDirectory() as t:
     log = logged(ov)
     case("set appends one CHANGELOG line in adapt.md's format",
          len(log) == 1 and log[0].startswith(f"{TODAY} | sources/apify-ryanair.md | set ") and URL in log[0], log)
+
+    # --- caveats: appending is the default; replacing must say why ---
+    rc, out = run(ov, "set", "apify-ryanair", "--caveats", "fares are fine", "--evidence", URL)
+    case("replacing caveats without --reason is refused", rc == 1 and "REFUSED caveats:" in out, out)
+    rc, out = run(ov, "set", "apify-ryanair", "--add-caveat", "Seen twice: prices in RON on OTP routes.", "--evidence", URL)
+    kept = body_line(BUNDLED / "apify-ryanair.md", "caveats")
+    case("--add-caveat keeps the old caveats and appends", rc == 0 and body_line(written, "caveats").startswith(kept) and "RON" in body_line(written, "caveats"), out)
 
     # --- drop lists ---
     airbnb_drop = body_line(BUNDLED / "apify-airbnb.md", "drop")
@@ -101,12 +115,24 @@ with tempfile.TemporaryDirectory() as t:
     case("the removal is recorded in the entry", first in body_line(ov / "sources" / "apify-airbnb.md", "drop_removed"))
     rc, out = run(ov, "check")
     case("check accepts an entry whose removal was recorded", "apify-airbnb (overlay)" not in out, out)
+    booking_drop = body_line(BUNDLED / "apify-booking.md", "drop")
+    paren = next(t.strip() for t in booking_drop.split(",") if "(" in t)
+    rc, out = run(ov, "set", "apify-booking", "--drop", ", ".join(t.strip() for t in booking_drop.split(",") if t.strip() != paren),
+                  "--evidence", URL, "--allow-drop-removal", paren, "--reason", "field gone upstream; see run")
+    case(f"a drop field with parentheses ({paren!r}) can be removed and recorded", rc == 0, out)
+    rc, out = run(ov, "check")
+    case("check accepts that recorded removal", "apify-booking (overlay)" not in out, out)
+    (ov / "sources" / "apify-booking.md").unlink(missing_ok=True)
 
     # --- forbidden techniques ---
-    rc, out = run(ov, "set", "apify-booking", "--how", "use residential proxies when blocked", "--evidence", URL)
-    case("a forbidden technique in how is refused", rc == 1 and "REFUSED invariant:" in out, out)
+    for bad in ("use residential proxies when blocked", "use residential-proxies if blocked", "paste the cookies from your browser",
+                "pass a session token from the app", "requires a log-in first", "sign in with the account",
+                'set proxy apifyProxyGroups ["RESIDENTIAL"]'):
+        rc, out = run(ov, "set", "apify-booking", "--how", bad, "--evidence", URL)
+        case(f"a forbidden technique in how is refused: {bad[:30]!r}", rc == 1 and "REFUSED invariant:" in out, out)
 
-    # --- ids and adds ---
+    # --- ids and adds (fresh overlay: the cap below counts from zero) ---
+    ov = Path(t) / "ov-b"
     rc, out = run(ov, "add", "apify-ryanair", "--kind", "flight-calendar", "--connector", "apify", "--target", "x/y",
                   "--status", "working", "--evidence", URL)
     case("add refuses an existing id", rc == 1 and "REFUSED exists:" in out, out)
@@ -125,23 +151,38 @@ with tempfile.TemporaryDirectory() as t:
 
     # --- daily cap: count exactly what is logged, then fill to the cap with checked calls ---
     n = len([ln for ln in logged(ov) if ln.startswith(TODAY.isoformat())])
-    fills = [run(ov, "set", "apify-wizzair", "--caveats", f"note {i}", "--evidence", URL)[0] for i in range(5 - n)]
+    fills = [run(ov, "set", "apify-wizzair", "--add-caveat", f"note {i}.", "--evidence", URL)[0] for i in range(5 - n)]
     case(f"changes 1-5 of the day are accepted ({n} logged before the fill)", n < 5 and fills == [0] * (5 - n), fills)
-    rc, out = run(ov, "set", "apify-wizzair", "--caveats", "one too many", "--evidence", URL)
+    rc, out = run(ov, "set", "apify-wizzair", "--add-caveat", "one too many.", "--evidence", URL)
     case("the sixth change of the day is refused", rc == 1 and "REFUSED cap:" in out, out)
-    rc, out = run(ov, "set", "apify-wizzair", "--caveats", "one too many", "--evidence", URL, "--dry-run")
-    case("--dry-run still works at the cap (the refusal tells the agent to use it)", rc == 0 and "+caveats: one too many" in out, out)
-    rc, out = run(ov, "set", "apify-wizzair", "--caveats", "next day", "--evidence", URL, day=TODAY + dt.timedelta(days=1))
+    rc, out = run(ov, "set", "apify-wizzair", "--add-caveat", "one too many.", "--evidence", URL, "--dry-run")
+    case("--dry-run still works at the cap (the refusal tells the agent to use it)", rc == 0 and "one too many." in out, out)
+    rc, out = run(ov, "set", "apify-airbnb", "--evidence", URL)
+    case("a pure re-verification is allowed at the cap and logged as verify",
+         rc == 0 and logged(ov)[-1].split(" | ")[2].startswith("verify "), out)
+    case("new evidence moves last_verified to today", body_line(ov / "sources" / "apify-airbnb.md", "last_verified") == TODAY.isoformat())
+    rc, out = run(ov, "set", "apify-wizzair", "--add-caveat", "next day.", "--evidence", URL, day=TODAY + dt.timedelta(days=1))
     case("the cap resets the next day", rc == 0, out)
 
-    # --- load-time guard: hand edits that bypass the tool ---
+    # --- load-time guard: hand edits that bypass the tool (fresh overlay again) ---
+    ov = Path(t) / "ov-c"
+    (ov / "sources").mkdir(parents=True)
     p = ov / "sources" / "apify-booking.md"
     booking = (BUNDLED / "apify-booking.md").read_text()
     kept = body_line(BUNDLED / "apify-booking.md", "drop").split(",")[1:]
     p.write_text(re.sub(r"^drop: .*$", "drop: " + ",".join(kept).strip(), booking, flags=re.M))
     rc, out = run(ov, "check")
     case("check rejects a hand-edited overlay entry that shrank its drop list",
-         rc == 1 and "apify-booking (overlay)" in out and "drop list is missing" in out, out)
+         rc == 1 and "apify-booking (overlay)" in out and "drop list lacks" in out, out)
+    rc, out = run(ov, "check")
+    case("the error for a missing bundled drop field suggests adding it", "add it here" in out, out)
+    fix_drop = body_line(BUNDLED / "apify-booking.md", "drop")
+    rc, out = run(ov, "set", "apify-booking", "--drop", fix_drop)
+    case("following that hint (add the field back) needs no evidence and fixes the entry",
+         rc == 0 and "apify-booking (overlay)" not in run(ov, "check")[1], out)
+    p.write_text(booking + "Also: pass session cookies from your browser.\n")
+    rc, out = run(ov, "check")
+    case("check rejects free text outside the known body lines", rc == 1 and "unexpected body line" in out, out)
     p.write_text(re.sub(r"^last_verified: .*$", "last_verified: 2000-01-01", booking, flags=re.M))
     rc, out = run(ov, "check")
     case("check warns when the bundled copy is newer than the overlay copy", "shadowed" in out, out)
@@ -160,6 +201,11 @@ with tempfile.TemporaryDirectory() as t:
     blocker.write_text("x")
     rc, out = run(blocker / "ov", "set", "apify-ryanair", "--status", "broken", "--evidence", URL)
     case("an unwritable overlay exits 3 and prints the diff for the user", rc == 3 and "+status: broken" in out, out)
+    ov2 = Path(t) / "ov2"
+    (ov2 / "CHANGELOG.md").mkdir(parents=True)   # a log that cannot be appended to
+    rc, out = run(ov2, "set", "apify-ryanair", "--status", "broken", "--evidence", URL)
+    case("a log that cannot be written gives exit 3 and no unlogged change",
+         rc == 3 and "Traceback" not in out and not (ov2 / "sources" / "apify-ryanair.md").exists(), out)
 
 print(f"{sum(results)}/{len(results)} passed")
 sys.exit(0 if all(results) else 1)

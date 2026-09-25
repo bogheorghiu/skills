@@ -21,16 +21,17 @@ NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 INSTALL_PREFIX = "github-"
 # Folder-qualified file references, backticked or plain ("see patterns/lodging.md §5").
 # A bare name such as CHANGELOG.md names a file in the user's overlay, not in the skill.
-REF_RE = re.compile(r"(?<![\w/.-])((?:\.\./)*(?:patterns|reference|references|sources|scripts|assets)/[A-Za-z0-9_./-]+\.(?:md|py|js|json|txt))")
+REF_RE = re.compile(r"(?<![\w/.-])((?:\.{1,2}/)*(?:patterns|reference|references|sources|scripts|assets)/[A-Za-z0-9_./-]*?[A-Za-z0-9_-]\.(?:md|py|js|json|txt))(?![A-Za-z0-9_])")
 # Scalars YAML would load as something other than a string (bools incl. YAML 1.1's
 # yes/no/on/off, null, numbers, dates); `gh skill publish` expects string values.
-YAML_NON_STRING = re.compile(r"^(?:|~|null|true|false|yes|no|on|off|[-+]?\d+|[-+]?\d*\.\d+(?:[eE][-+]?\d+)?|\d{4}-\d{2}-\d{2}.*)$", re.I)
+YAML_NON_STRING = re.compile(r"^(?:|~|null|true|false|yes|no|on|off|y|n|[-+]?[\d_]+|0x[\da-f_]+|0o[0-7_]+|[-+]?[\d_]*\.[\d_]+(?:e[-+]?\d+)?|[-+]?\.inf|\.nan|\d{4}-\d{2}-\d{2}.*)$", re.I)
 
 
 def strip_comment(v):
-    """Drop a trailing ' # comment' from an unquoted scalar."""
-    if v[:1] in "\"'":
-        return v
+    """Drop a trailing ' # comment', keeping a quoted scalar's quotes."""
+    if v[:1] and v[:1] in "\"'":
+        close = v.find(v[0], 1)
+        return v[:close + 1] if close > 0 else v
     return re.split(r"\s+#", v, maxsplit=1)[0].rstrip()
 
 
@@ -73,9 +74,8 @@ def parse_frontmatter(text):
                 sub[mm.group(1)] = strip_comment(mm.group(2))
             data[key] = sub
         else:
-            if block and any(b.strip() for b in block):
-                raise ValueError(f"unexpected indented lines after {key}")
-            data[key] = val
+            # A plain scalar may continue on indented lines; YAML folds them with spaces.
+            data[key] = " ".join([val] + [b.strip() for b in block if b.strip()])
     return data, body
 
 
@@ -106,14 +106,15 @@ def check_skill(skill_dir):
     comp = fm.get("compatibility")
     if isinstance(comp, str) and not 1 <= len(unquote(comp)) <= 500:
         errors.append("compatibility must be 1-500 chars")
-    if "license" not in fm:
+    if not isinstance(fm.get("license"), str) or not unquote(fm["license"]).strip():
         errors.append("missing field: license (gh skill publish warns on it)")
     meta = fm.get("metadata")
     if meta is not None and not isinstance(meta, dict):
         errors.append("metadata must be a map of string keys to string values")
     elif isinstance(meta, dict):
         for k, v in meta.items():
-            if not isinstance(v, str) or not (v[:1] in "\"'" and v[-1:] == v[:1]) and YAML_NON_STRING.match(v):
+            quoted = len(v) >= 2 and v[0] in "\"'" and v[-1] == v[0]
+            if not quoted and YAML_NON_STRING.match(v):
                 errors.append(f"metadata.{k} = {v!r} would not load as a string in YAML; quote it")
     if isinstance(fm.get("allowed-tools"), (dict, list)) or str(fm.get("allowed-tools", "")).startswith("["):
         errors.append("allowed-tools must be a space-separated string, not a list")

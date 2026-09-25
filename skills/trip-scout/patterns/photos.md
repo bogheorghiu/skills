@@ -6,7 +6,7 @@ uses:
 ---
 # Photos (opt-in)
 
-**Default: no copies.** Each card links to its listing, and the listing shows the photos.
+**Default: no copies.** Each card links to its listing, and the listing shows the photos. Do not embed the platform's image URLs in the page either; that shows the photo without the listing's context and loads it from their servers on every view.
 
 Copy photos only after the user opts in, having been told that this reproduces copyrighted images and that private-copying exceptions vary by country. Limits:
 

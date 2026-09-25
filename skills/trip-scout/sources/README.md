@@ -24,4 +24,6 @@ The body is free text; keep it short.
 
 `scripts/sources.py check` validates every entry against this format; `set` and `add` write overlay entries in it and log the change (see `patterns/adapt.md`). An entry that fails `check` counts as `untested` for the session.
 
+A bundled entry with `status: untested` is a lead, not a verified source: it ships so the first user who runs it can record the result.
+
 The `last_verified` dates on bundled entries are the dates this release was verified. After 90 days they read as stale until a run re-verifies them; that is expected, not a fault.
