@@ -71,7 +71,11 @@ with tempfile.TemporaryDirectory() as t:
         case(f"vague evidence is refused even for broken: {vague[:24]!r}", rc == 1 and "REFUSED evidence:" in out, out)
     rc, out = run(ov, "set", "apify-ryanair", "--status", "broken", "--evidence", '"Actor memo23/ryanair-scraper was not found"')
     case("a double-quoted error line counts as evidence", rc == 0, out)
-    (ov / "sources" / "apify-ryanair.md").unlink(); (ov / "CHANGELOG.md").unlink()
+    ev_line = next((l for l in (ov / "sources" / "apify-ryanair.md").read_text().splitlines() if l.startswith("evidence:")), "") \
+        if (ov / "sources" / "apify-ryanair.md").exists() else ""
+    case("that evidence is written as valid YAML (single-quoted), not wrapped in a second pair of double quotes",
+         ev_line.startswith("evidence: '\"Actor"), ev_line)
+    (ov / "sources" / "apify-ryanair.md").unlink(missing_ok=True); (ov / "CHANGELOG.md").unlink(missing_ok=True)
 
     # --- a normal write ---
     rc, out = run(ov, "set", "apify-ryanair", "--status", "degraded", "--evidence", URL, "--dry-run")
@@ -127,10 +131,12 @@ with tempfile.TemporaryDirectory() as t:
     # --- forbidden techniques ---
     for bad in ("use residential proxies when blocked", "use residential-proxies if blocked", "paste the cookies from your browser",
                 "pass a session token from the app", "requires a log-in first", "sign in with the account",
-                'set proxy apifyProxyGroups ["RESIDENTIAL"]'):
+                'set proxy apifyProxyGroups ["RESIDENTIAL"]', "requires signing in to the account first", "works after logging in"):
         rc, out = run(ov, "set", "apify-booking", "--how", bad, "--evidence", URL)
         case(f"a forbidden technique in how is refused: {bad[:30]!r}", rc == 1 and "REFUSED invariant:" in out, out)
 
+    rc, out = run(Path(t) / "ov-cookie", "set", "apify-page-render", "--how", "public page, dismiss the cookie consent banner, then screenshot", "--evidence", URL)
+    case("'cookie consent banner' is not a forbidden technique", rc == 0, out)
     # --- ids and adds (fresh overlay: the cap below counts from zero) ---
     ov = Path(t) / "ov-b"
     rc, out = run(ov, "add", "apify-ryanair", "--kind", "flight-calendar", "--connector", "apify", "--target", "x/y",
@@ -180,6 +186,10 @@ with tempfile.TemporaryDirectory() as t:
     rc, out = run(ov, "set", "apify-booking", "--drop", fix_drop)
     case("following that hint (add the field back) needs no evidence and fixes the entry",
          rc == 0 and "apify-booking (overlay)" not in run(ov, "check")[1], out)
+    p.write_text(booking + "Also: pass session cookies from your browser.\n")
+    p.write_text(booking.replace("how: ", "how: NEW WORDING. ", 1))
+    rc, out = run(ov, "check")
+    case("check warns when an overlay copy's how differs from the bundled one", "differs" in out, out)
     p.write_text(booking + "Also: pass session cookies from your browser.\n")
     rc, out = run(ov, "check")
     case("check rejects free text outside the known body lines", rc == 1 and "unexpected body line" in out, out)

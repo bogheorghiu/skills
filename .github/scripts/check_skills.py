@@ -24,14 +24,17 @@ INSTALL_PREFIX = "github-"
 REF_RE = re.compile(r"(?<![\w/.-])((?:\.{1,2}/)*(?:patterns|reference|references|sources|scripts|assets)/[A-Za-z0-9_./-]*?[A-Za-z0-9_-]\.(?:md|py|js|json|txt))(?![A-Za-z0-9_])")
 # Scalars YAML would load as something other than a string (bools incl. YAML 1.1's
 # yes/no/on/off, null, numbers, dates); `gh skill publish` expects string values.
-YAML_NON_STRING = re.compile(r"^(?:|~|null|true|false|yes|no|on|off|y|n|[-+]?[\d_]+|0x[\da-f_]+|0o[0-7_]+|[-+]?[\d_]*\.[\d_]+(?:e[-+]?\d+)?|[-+]?\.inf|\.nan|\d{4}-\d{2}-\d{2}.*)$", re.I)
+YAML_NON_STRING = re.compile(r"^(?:|~|null|true|false|yes|no|on|off|y|n|[-+]?[\d_]+|0x[\da-f_]+|0o[0-7_]+|0b[01_]+|[-+]?[\d_]+\.[\d_]*(?:e[-+]?\d+)?|[-+]?[\d_]*\.[\d_]+(?:e[-+]?\d+)?|[-+]?\d+e[-+]?\d+|[-+]?\.inf|\.nan|\d{4}-\d{2}-\d{2}.*)$", re.I)
 
 
 def strip_comment(v):
     """Drop a trailing ' # comment', keeping a quoted scalar's quotes."""
-    if v[:1] and v[:1] in "\"'":
-        close = v.find(v[0], 1)
-        return v[:close + 1] if close > 0 else v
+    if v[:1] == "'":
+        m = re.match(r"'(?:[^']|'')*'", v)          # '' is an escaped quote
+        return m.group(0) if m else v
+    if v[:1] == '"':
+        m = re.match(r'"(?:[^"\\]|\\.)*"', v)      # backslash escapes
+        return m.group(0) if m else v
     return re.split(r"\s+#", v, maxsplit=1)[0].rstrip()
 
 
@@ -74,8 +77,14 @@ def parse_frontmatter(text):
                 sub[mm.group(1)] = strip_comment(mm.group(2))
             data[key] = sub
         else:
-            # A plain scalar may continue on indented lines; YAML folds them with spaces.
-            data[key] = " ".join([val] + [b.strip() for b in block if b.strip()])
+            # A plain scalar may continue on indented lines; YAML folds them with spaces. A
+            # continuation that looks like a mapping or list item is a mis-indented block,
+            # which YAML rejects, so the linter must too.
+            cont = [b.strip() for b in block if b.strip()]
+            bad = [c for c in cont if c.startswith("- ") or re.match(r"^[A-Za-z0-9_.-]+:(\s|$)", c)]
+            if bad:
+                raise ValueError(f"indented line under {key!r} looks like a mapping or list entry (missing parent key?): {bad[0]!r}")
+            data[key] = " ".join([val] + cont)
     return data, body
 
 

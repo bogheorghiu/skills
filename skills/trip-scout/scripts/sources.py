@@ -55,7 +55,7 @@ HANDLE_RE = re.compile(
 # sources. Scanned in `target` and `how` only: `caveats` legitimately say "never use
 # residential proxies", and a warning must not read as a violation.
 FORBIDDEN = re.compile(
-    r"\b(log[- ]?ins?|logged[- ]in|sign(?:ed)?[- ]?in|passwords?|cookies?|session[- ]tokens?|auth[- ]tokens?"
+    r"\b(log(?:ged|ging)?[- ]?ins?|sign(?:ed|ing)?[- ]?in|passwords?|(?:session|auth|browser|login)[- ]cookies?|cookies? from|session[- ]tokens?|auth[- ]tokens?"
     r"|captchas?|residential[- _]?prox\w*|rotating[- _]?prox\w*|proxyconfiguration|apifyproxygroups)\b", re.I)
 # Characters str.splitlines() treats as line breaks; any of them in a value would start
 # a new line, i.e. inject a second key into the entry.
@@ -108,8 +108,10 @@ def parse_date(s):
 
 def unquote(v):
     v = v.strip()
-    if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
-        return v[1:-1]
+    if len(v) >= 2 and v[0] == v[-1] == "'":
+        return v[1:-1].replace("''", "'")   # YAML single-quoted: '' is a literal quote
+    if len(v) >= 2 and v[0] == v[-1] == '"':
+        return v[1:-1].replace('\\"', '"')
     return re.split(r"\s+#", v, maxsplit=1)[0].strip()  # an unquoted value may carry a trailing comment
 
 
@@ -219,6 +221,12 @@ def validate(entry, stem, bundled_entry, on):
         blv, olv = parse_date(bundled_entry["front"].get("last_verified")), parse_date(f.get("last_verified"))
         if blv and olv and blv > olv:
             w.append(f"shadowed: the bundled entry was verified later ({blv}) than this overlay copy ({olv}); compare them")
+        differ = [k for k in ("target", "how", "caveats") if (bundled_entry["front"] if k == "target" else bundled_entry["body"]).get(k)
+                  != (f if k == "target" else b).get(k)]
+        if differ:
+            # An overlay copy hides every later upstream fix to these lines, even one made
+            # only to renew a date; say so, so the agent compares instead of trusting either.
+            w.append(f"differs: this overlay copy's {', '.join(differ)} differ from the bundled entry; if the bundled text is newer, it may fix what the overlay still says")
     return e, w
 
 
@@ -298,7 +306,11 @@ def replace_line(text, key, value, in_front):
     if end is None:
         raise Refused("schema: the current entry has no closed frontmatter; fix or replace it by hand first")
     rng = range(1, end) if in_front else range(end + 1, len(lines))
-    rendered = f'{key}: "{value}"' if in_front and key == "evidence" else f"{key}: {value}"
+    if in_front and key == "evidence":
+        # Valid YAML either way: double quotes unless the value has one, then single quotes.
+        rendered = f'{key}: "{value}"' if '"' not in value else "{}: '{}'".format(key, value.replace("'", "''"))
+    else:
+        rendered = f"{key}: {value}"
     for i in rng:
         if re.match(rf"^{key}:", lines[i]):
             lines[i] = rendered + "\n"
@@ -439,7 +451,7 @@ def apply_change(args, new_entry):
     summary = ", ".join(f"{k}={cell(v)}" for k, v in {**front_updates, **body_updates}.items() if k not in ("evidence", "id"))
     if lost:
         summary += f"; DROP REMOVED {sorted(lost)} because {cell(args.reason)}"
-    elif replaces_caveats:
+    if replaces_caveats:
         summary += f"; CAVEATS REPLACED because {cell(args.reason)}"
     verb = "add" if new_entry else ("verify" if set(front_updates) <= {"evidence", "last_verified"} and not body_updates else "set")
     log_line = (f"{on.isoformat()} | sources/{args.id}.md | {verb} {summary} | "
@@ -459,8 +471,6 @@ def apply_change(args, new_entry):
     # happen (it still counts toward the cap), never a change that was not logged.
     target = ov / "sources" / f"{args.id}.md"
     try:
-        if not writable(ov):
-            raise OSError("overlay not writable")
         ov.mkdir(parents=True, exist_ok=True)
         with open(changelog, "a", encoding="utf-8") as fh:
             fh.write(log_line)
