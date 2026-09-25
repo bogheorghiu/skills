@@ -1,0 +1,20 @@
+# Local PII denylist (the source of truth for .githooks and the PII_DENYLIST secret).
+# Never tracked: the file IS the list of names the gate exists to keep out.
+pii-denylist.local
+pii-denylist.txt
+.pii-denylist.synced
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Claude Code runtime
+/.claude/worktrees/
+/.claude/settings.local.json

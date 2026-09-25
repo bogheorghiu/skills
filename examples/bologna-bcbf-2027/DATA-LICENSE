@@ -1,0 +1,8 @@
+streets.js and routes.js contain data derived from OpenStreetMap.
+© OpenStreetMap contributors. Available under the Open Database License (ODbL) 1.0:
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Routes were computed with OSRM on routing.openstreetmap.de (FOSSGIS) on 2026-09-25.
+Found an error in the map data? https://www.openstreetmap.org/fixthemap
+
+The MIT license in the repository root covers the code, not these data files.
