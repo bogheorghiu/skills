@@ -6,6 +6,10 @@ uses: {}
 
 Ask only what changes the search. Batch every enumerable choice into one structured question.
 
+- **Whose trip.** Is it for the user or their household? Anything else (an agency, an employer, resale, watching prices for others) stops the skill here (invariant 1).
+- **Spend.** A total budget for the scraping runs, in the connector's currency (suggest about USD 5 if the user has no number). A lodging search alone is often 5–8 paid runs, so each run gets its share of what is left.
+- **Currency** the page should show totals in.
+
 - **Nights, not days.** Restate phrases like "one night before, two after" as check-in / check-out dates plus a night count. When the end day is ambiguous (the event closes mid-afternoon), offer both readings.
 - **Tickets vs people.** Tickets bought now and people sharing the room often differ.
 - **Route:** airports, direct-only or not, alternative airports allowed or not.

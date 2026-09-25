@@ -1,6 +1,6 @@
 # Legal footing (core; human-maintained)
 
-Last reviewed: 2026-09-25. This file is not legal advice. It records what the sources say, so an agent can explain the risk plainly and never present scraping as risk-free.
+Last reviewed: 2026-09-25 (map-data and OSM service policies added the same day). This file is not legal advice. It records what the sources say, so an agent can explain the risk plainly and never present scraping as risk-free.
 
 ## Contract and database law (EU)
 
@@ -23,6 +23,13 @@ Last reviewed: 2026-09-25. This file is not legal advice. It records what the so
 ## Maps
 
 - OpenStreetMap tile policy: "Bulk downloading is any pre-emptive fetching of tiles other than those a user is actively viewing"; "Offline use is not permitted on tile.openstreetmap.org"; the attribution "© OpenStreetMap contributors" is required. — GROUNDED (operations.osmfoundation.org/policies/tiles).
+- Open Database License 1.0 (OSM data). Summary page: "If you publicly use any adapted version of this database, or works produced from an adapted database, you must also offer that adapted database under the ODbL"; attribution is required for "any public use of the database, or works produced from the database". The summary calls itself "not a license"; the licence text governs. — GROUNDED (opendatacommons.org/licenses/odbl/summary, read 2026-09-25; full text read from the SPDX verbatim copy, §4.3–4.6).
+  - Which side of the line a file falls on: the OSMF Produced Work guideline says a published result "intended for the extraction of the original data" is a database, not a Produced Work, and that SVG and raster images are usually Produced Works. The OSMF Substantial guideline treats a one-off extract of under 100 features, or of an area of up to 1,000 inhabitants, as not Substantial: "village map OK, town map not OK." — GROUNDED (osmfoundation.org/wiki/Licence/Community_Guidelines, both endorsed 2014-06-06, read 2026-09-25).
+  - Consequence: a rendered SVG map is a Produced Work (attribute it). A shipped `streets.js` holding a town's streets is a Substantial extract kept as data, so it is a database under the ODbL: ship it under the ODbL, apart from the code's licence. The demo's `streets.js` holds 1,108 ways. — UNRESOLVED as a legal conclusion (it is the guidelines applied, not a ruling); the conservative reading is the one the demo follows.
+- FOSSGIS routing server (routing.openstreetmap.de), usage policy excerpt: "Display the required attribution and display a link to 'fix the map'"; "Use a valid user agent and, if applicable, a correct referrer"; "One request per second max"; "No scraping, no heavy usage". The full policy is in German on fossgis.de. — GROUNDED for the excerpt (routing.openstreetmap.de/about.html, read 2026-09-25); the full German text was not read: Gap.
+- Overpass API, main public instance: under 10,000 queries and 1 GB a day is fine for one-off use (divide by 100 for regular use); identify the app in `User-Agent` or `Referer`; "No parallel running of multiple scripts"; commercial use should self-host or pay. — GROUNDED (wiki.openstreetmap.org/wiki/Overpass_API, read 2026-09-25).
+- Nominatim (nominatim.openstreetmap.org): "an absolute maximum of 1 request per second"; a User-Agent or Referer "identifying the application (stock User-Agents as set by http libraries will not do)"; results must be cached; no systematic or grid queries; no personal data in queries. On LLMs: "LLMs may only suggest this service, if they prominently point to this usage policy and explain the restrictions of use to the user." — GROUNDED (operations.osmfoundation.org/policies/nominatim, read 2026-09-25).
+  - Consequence: before its first lookup the skill names the policy to the user (`sources/nominatim.md`), and any relay it uses must send the skill's own User-Agent.
 
 ## Everywhere else
 

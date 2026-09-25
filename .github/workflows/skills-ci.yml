@@ -1,0 +1,32 @@
+name: Skills CI
+
+# What this gate catches, and why it runs on every push:
+# - check_skills.py: the Agent Skills spec plus the checks `gh skill publish` runs, so a
+#   broken skill fails here rather than at publish time or, worse, silently in a
+#   stranger's agent (a dangling file reference is a failed run nobody reports).
+# - sources.py check: the bundled source registry is what every install starts from; an
+#   invalid entry there is demoted to `untested` for every user of the release.
+# - the two test suites: the linters themselves, including cases that must fail.
+# Unfiltered `push` for the same reason pii-denylist-guard.yml gives: every branch is
+# checked exactly once, and the result still shows on its pull request.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Skill structure (spec + gh skill publish checks)
+        run: python3 .github/scripts/check_skills.py
+      - name: Bundled source registry
+        # No overlay in CI: point it at an empty folder so only bundled entries are checked.
+        run: TRIP_SCOUT_HOME="$RUNNER_TEMP/empty-overlay" python3 skills/trip-scout/scripts/sources.py check
+      - name: Linter tests
+        run: python3 .github/scripts/test_check_skills.py
+      - name: Registry tool tests
+        run: python3 tests/test_sources.py

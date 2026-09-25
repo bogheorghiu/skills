@@ -7,7 +7,7 @@ uses:
 
 1. **Search 2+ lodging platforms.** Cover an area slightly wider than the constraint, so the page can show what's just outside it. Follow each source entry's `how` notes (map box, one run per property type, and so on).
 2. **Filter by the geometry**, not by the platforms' neighbourhood labels.
-   - For a named boundary, trace a polygon from a map image or from sourced gate coordinates, then test point-in-polygon.
+   - For a named boundary, take the polygon from OpenStreetMap vector data (the boundary relation or the ring road's ways) or from sourced gate coordinates, then test point-in-polygon. Never trace it from a map image: coordinates come from data (invariant 8).
    - Draw the boundary on the page so the user can judge it.
    - Tag where the polygon came from.
 3. **Treat points near the boundary as "borderline".** Some platforms show approximate locations when the host hides the precise one.
@@ -19,7 +19,8 @@ uses:
    - the cheapest free-cancellation price, where the data has it.
 5. **Reconcile taxes with arithmetic.** Local tourist taxes usually follow a rule (percent of the nightly price, per-person cap, maximum nights). Find the rule, then check each listing's tax line against it:
    - it matches: the tax is already in the total (GROUNDED);
-   - there's no line: estimate the tax and flag it (UNRESOLVED);
+   - there's no line: estimate the tax from the rule and flag it (UNRESOLVED);
+   - no rule found: the tax is a **Gap**; show no estimate;
    - it doesn't match: the line includes something else, so say that.
 6. **Flag thin evidence:**
    - fewer than 5 reviews;

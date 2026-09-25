@@ -11,7 +11,7 @@ One private page, designed for this trip; no fixed template. Keep this skeleton:
 2. **Calendar strip:** one cell per day. Travel, event (with opening hours) and free days look different. Count the nights.
 3. **Bottom line:** 2–3 sentences with the real trade-off in numbers, computed from the data (compare like with like: apartment vs apartment), never hard-coded.
 4. **Map.** An SVG drawn from vector data, never from pre-rendered tiles. It must answer "how far is each option from the venue, and what does it cost" without opening a card:
-   - Base layer: real streets, railways and the venue footprint from OpenStreetMap vector data (e.g. Overpass `out geom`), simplified and shipped as a local `streets.js`, with "© OpenStreetMap contributors (ODbL)" on the map. If no vector data is reachable, fall back to the boundary polygon and landmarks, and say the map is schematic.
+   - Base layer: real streets, railways and the venue footprint from OpenStreetMap vector data (a `vector-data` source, such as `sources/overpass.md`), simplified and shipped as a local `streets.js` with an ODbL notice beside it, with "© OpenStreetMap contributors (ODbL)" on the map. If no vector data is reachable, fall back to the boundary polygon and landmarks, and say the map is schematic.
    - The venue's real entrance (not the centroid of its grounds), labelled.
    - Routed walking minutes on each pin's chip (`17′ · €818`). No circles or other straight-line isochrones; true isochrones only if computed by a router.
    - Numbered pins: shape = platform, fill = inside/outside the constraint, a price chip under each. Resolve overlaps with box-based repulsion that counts the chip, and draw a thin leader line to the true position.
@@ -45,6 +45,7 @@ Behaviour and layout:
 - Light and dark themes.
 - No horizontal scroll at 390 px wide.
 - The user's language. For a public demo, offer a language switch.
+- A page that will be shared or published carries no host names (invariant 5) and no copied photos (`patterns/photos.md`); the private page may.
 
 Mechanics:
 

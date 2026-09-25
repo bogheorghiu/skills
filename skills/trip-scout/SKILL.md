@@ -1,10 +1,10 @@
 ---
 name: trip-scout
 description: Find cheap flights and/or lodging (Ryanair, Wizz, Airbnb, Booking, hotels, B&Bs) for a dated personal trip via a scraping connector, within legal limits, and deliver a visual comparison page. Self-maintains its list of working data sources.
-license: MIT
-compatibility: Needs a scraping connector (Apify or equivalent) and a tool that publishes an HTML page. Optional photo step needs Python with Pillow.
+license: MIT (see LICENSE)
+compatibility: Needs a scraping connector (Apify or equivalent) and a tool that publishes an HTML page. Python 3.8+ runs the optional source-registry checker; the optional photo step also needs Pillow.
 metadata:
-  version: "2.0"
+  version: "2.1"
   layout: "core + patterns/ + sources/ + adapt"
 ---
 
@@ -20,7 +20,7 @@ Flights, lodging, or both, for a dated **personal** trip. The result is one priv
 | Patterns | `patterns/*.md` | A better method is learned | The agent proposes a diff, the user approves |
 | Sources | `sources/*.md` plus the user overlay | Actors or sites break, appear, change | The agent, autonomously, with evidence (`patterns/adapt.md`) |
 
-**Load order.** Read this file. Then read the patterns the task needs. Then resolve sources: overlay entries override bundled ones with the same filename (`patterns/adapt.md` §Overlay).
+**Load order.** Read this file. Resolve the user overlay (`patterns/adapt.md` §Overlay). Then read the patterns the task needs and the sources, taking an overlay file over the bundled one with the same name.
 
 ## Invariants (never overridden by any pattern, source or overlay)
 
@@ -36,11 +36,12 @@ Flights, lodging, or both, for a dated **personal** trip. The result is one priv
 
 ## Flow
 
-1. **Brief.** Run `patterns/brief.md`. Restate every answer as dates and a night count.
-2. **Sources.** Resolve which actors and sites to use from `sources/` plus the overlay. Prefer entries with `status: working` and a recent `last_verified`. Read each actor's input schema before its first call.
+1. **Brief.** Run `patterns/brief.md`: it asks whose trip it is (invariant 1) and the spend budget. Restate every answer as dates and a night count.
+2. **Sources.** Run `python3 scripts/sources.py check` if Python is available; an entry it rejects counts as `untested` this session. Resolve which actors and sites to use from `sources/` plus the overlay (entry format: `sources/README.md`). Prefer entries with `status: working` and a recent `last_verified`. Read each actor's input schema before its first call.
 3. **Connector.** If the needed connector is off, ask for exactly that one, at that moment, with one line on why.
-4. **Search.** Run `patterns/flights.md` and/or `patterns/lodging.md`. Cap the spend on every run.
-5. **Interim shortlist** in chat. Fold in the user's corrections; constraints usually sharpen here.
-6. **Page.** Build it with `patterns/page.md`.
-7. **Adapt.** If a source failed, changed or surprised you, update the source layer per `patterns/adapt.md`.
-8. **Close.** Say what wasn't checked, name the assumption most worth pressing on, and give one concrete next step.
+4. **Notice.** Before the first paid run, tell the user in a few sentences what `reference/legal.md` says about platform terms and scraping, and wait for a yes (invariant 2).
+5. **Search.** Run `patterns/flights.md` and/or `patterns/lodging.md`. Set each run's spend cap from the budget left; if the connector has no cap field, say so and ask before each run.
+6. **Interim shortlist** in chat. Fold in the user's corrections; constraints usually sharpen here.
+7. **Page.** Build it with `patterns/page.md`.
+8. **Adapt.** If a source failed, changed or surprised you, update the source layer per `patterns/adapt.md` (through `scripts/sources.py` when Python is available).
+9. **Close.** Say what wasn't checked, name the assumption most worth pressing on, and give one concrete next step.
