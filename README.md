@@ -1,42 +1,60 @@
-# trip-scout
+# skills
 
-An [Agent Skill](https://agentskills.io/specification) that finds cheap flights and/or lodging for a dated personal trip. It pulls prices through a scraping connector (Apify by default) and delivers one visual comparison page.
+Agent Skills ([agentskills.io](https://agentskills.io/specification) format) that run in Claude Code, Codex, Cursor, Gemini CLI, Copilot and other agents that read the format.
+
+| Skill | What it does |
+|---|---|
+| [`trip-scout`](skills/trip-scout/SKILL.md) | Finds cheap flights and lodging for a dated **personal** trip through a scraping connector (Apify by default), within stated legal limits, and builds one comparison page: map with walking times routed along real streets, price chart, cards, flights table. |
+
+## Install
 
 ```bash
-npx skills add <owner>/<repo>
-# or
-gh skill install <owner>/<repo> trip-scout
+npx skills add bogheorghiu/skills          # skills.sh CLI; pick trip-scout
+gh skill install bogheorghiu/skills trip-scout   # GitHub CLI 2.90+
 ```
+
+Or copy `skills/trip-scout/` into your agent's skills folder.
+
+## trip-scout
+
+**Demo:** [`examples/bologna-bcbf-2027/`](examples/bologna-bcbf-2027/index.html). Serve the folder and open `index.html` (it loads `data.js`, `streets.js` and `routes.js` beside it). Lodging for a book fair in Bologna, April 2027, with an EN/RO switch.
+
+**What you need:** an agent with a scraping connector (the bundled sources use Apify actors, which are paid per run) and a way to publish or open an HTML page. Python 3.8+ is optional; it runs the source-registry checker.
+
+**Limits, by design.** The skill stops if the trip is for a business. Before the first paid run it tells you that platform terms generally forbid automated extraction, even for personal use, and waits for your yes. It never works around a refusal, never logs in, never books or pays. It drops hosts' personal data, links photos instead of copying them, and draws maps from OpenStreetMap data instead of copying map tiles. [`reference/legal.md`](skills/trip-scout/reference/legal.md) records what the law and the services' policies say, with sources. It is not legal advice.
+
+**It keeps its own list of scrapers current.** Scrapers break and sites change. When one does, the skill records the change, with evidence, in a folder you own (`$TRIP_SCOUT_HOME`, else `$CLAUDE_PLUGIN_DATA/trip-scout`, else `~/.local/share/trip-scout`), so it survives updates and never touches the installed files. It may change that source list on its own, within limits a script checks. Changes to its methods need your approval. Its rules and legal file change only by a reviewed pull request here. The details are in [`patterns/adapt.md`](skills/trip-scout/patterns/adapt.md).
+
+If it fixed a broken source for you, it offers a ready-made pull request text; sending it upstream helps the next user.
 
 ## Layout
 
 ```
 skills/trip-scout/
-  SKILL.md            core: invariants + flow (human-maintained)
-  reference/legal.md  legal footing with primary sources (human-maintained)
-  patterns/*.md       how-to modules: brief, flights, lodging, page, photos, adapt
-  sources/*.md        registry of scrapers/sites, kept current by the skill
-examples/bologna-bcbf-2027/   demo output (open index.html)
+  SKILL.md             rules and flow: what the agent reads first
+  reference/legal.md   legal footing, primary-sourced
+  patterns/            how-to modules: brief, flights, lodging, page, photos, adapt
+  sources/             one file per scraper or service, kept current by the skill
+  scripts/sources.py   checks and edits the source list (stdlib Python)
+examples/              demo output
+tests/                 tests for the scripts (not shipped with the skill)
 ```
 
-**The source layer maintains itself.** Actors break and sites change. When that happens, the skill records it, with evidence, in a user-owned overlay folder. The folder is resolved in this order:
+## Licences
 
-1. `$TRIP_SCOUT_HOME`
-2. `${CLAUDE_PLUGIN_DATA}`, when installed as a Claude Code plugin
-3. `${XDG_DATA_HOME:-~/.local/share}/trip-scout/`
+- `skills/trip-scout/` and the demo's code: MIT ([`skills/trip-scout/LICENSE`](skills/trip-scout/LICENSE)).
+- `examples/bologna-bcbf-2027/streets.js` and `routes.js`: derived from OpenStreetMap, © OpenStreetMap contributors, under the [ODbL](https://opendatacommons.org/licenses/odbl/1-0/) ([`DATA-LICENSE`](examples/bologna-bcbf-2027/DATA-LICENSE)).
+- Anything else in this repository: Apache-2.0 ([`LICENSE`](LICENSE)).
 
-The skill may update source entries on its own. Changes to patterns need the user's approval. The core and the legal file are never edited by the skill. See `patterns/adapt.md`.
+## Contributing
 
-## Limits, by design
+Pull requests are welcome, most of all fixes to `sources/` entries backed by a real run. Run the checks CI runs before you push:
 
-- Personal use only. The skill stops if the trip is for a business.
-- Before the first paid run, the user is told that platform terms generally forbid automated extraction.
-- No circumvention of refusals, no logged-in data, no booking or payment.
-- Personal data is minimised. Photos are linked, not copied; copying is opt-in.
-- No pre-rendered OpenStreetMap tiles. Maps are drawn from OpenStreetMap vector data (ODbL, attributed).
+```bash
+python3 .github/scripts/check_skills.py
+python3 skills/trip-scout/scripts/sources.py check
+python3 .github/scripts/test_check_skills.py
+python3 tests/test_sources.py
+```
 
-Not legal advice. See `skills/trip-scout/reference/legal.md` for what the sources say.
-
-## License
-
-MIT
+This repository is public, so nothing personal goes into it: no names, no host data, nothing that identifies a traveller. A PII guard runs in CI; enable the same check locally with `git config core.hooksPath .githooks`.
