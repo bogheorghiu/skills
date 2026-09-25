@@ -135,6 +135,13 @@ with tempfile.TemporaryDirectory() as t:
         rc, out = run(ov, "set", "apify-booking", "--how", bad, "--evidence", URL)
         case(f"a forbidden technique in how is refused: {bad[:30]!r}", rc == 1 and "REFUSED invariant:" in out, out)
 
+    for bad in ("use stealth mode and spoof the user agent", "set useApifyProxy true", "solve with 2captcha"):
+        rc, out = run(Path(t) / "ov-bad", "set", "apify-booking", "--how", bad, "--evidence", URL)
+        case(f"forbidden: {bad[:28]!r}", rc == 1 and "REFUSED invariant:" in out, out)
+    rc, out = run(Path(t) / "ov-geo", "set", "nominatim", "--how", "relay the search through apify-page-render", "--evidence", URL)
+    case("a geocoder entry may not route through a relay", rc == 1 and "REFUSED invariant:" in out, out)
+    rc, out = run(ROOT / "skills" / "trip-scout", "set", "apify-ryanair", "--status", "broken", "--evidence", URL)
+    case("an overlay inside the skill folder is refused", rc == 1 and "REFUSED overlay:" in out and "degraded" not in (BUNDLED / "apify-ryanair.md").read_text() and "status: broken" not in (BUNDLED / "apify-ryanair.md").read_text(), out)
     rc, out = run(Path(t) / "ov-cookie", "set", "apify-page-render", "--how", "public page, dismiss the cookie consent banner, then screenshot", "--evidence", URL)
     case("'cookie consent banner' is not a forbidden technique", rc == 0, out)
     # --- ids and adds (fresh overlay: the cap below counts from zero) ---

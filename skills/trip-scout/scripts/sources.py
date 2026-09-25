@@ -52,11 +52,16 @@ HANDLE_RE = re.compile(
     r"|\b(?:(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])|(?=[A-Za-z0-9]*[A-Z][A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[a-z]))[A-Za-z0-9]{17}\b"
     "|[\"“][^\"“”]{20,}[\"”]")
 # Invariant 3 and adapt.md's hard limits: no logged-in, proxied or CAPTCHA-solving
-# sources. Scanned in `target` and `how` only: `caveats` legitimately say "never use
+# sources. A keyword list catches the common wordings of an honest mistake, not every
+# phrasing; the agent still owns the rule. Scanned in `target` and `how` only: `caveats` legitimately say "never use
 # residential proxies", and a warning must not read as a violation.
 FORBIDDEN = re.compile(
     r"\b(log(?:ged|ging)?[- ]?ins?|sign(?:ed|ing)?[- ]?in|passwords?|(?:session|auth|browser|login)[- ]cookies?|cookies? from|session[- ]tokens?|auth[- ]tokens?"
-    r"|captchas?|residential[- _]?prox\w*|rotating[- _]?prox\w*|proxyconfiguration|apifyproxygroups)\b", re.I)
+    r"|captchas?|2captcha|anti-?captcha|capsolver|residential[- _]?prox\w*|rotating[- _]?prox\w*|proxyconfiguration"
+    r"|apifyproxygroups|useapifyproxy|stealth|spoof\w*|fingerprint\w*)\b", re.I)
+# Nominatim's policy names Apify among the resellers that must run their own geocoder, so a
+# geocoder entry may not route through a relay (sources/nominatim.md, reference/legal.md).
+GEOCODER_FORBIDDEN = re.compile(r"\b(apify|relay\w*|reseller\w*|page-render)\b", re.I)
 # Characters str.splitlines() treats as line breaks; any of them in a value would start
 # a new line, i.e. inject a second key into the entry.
 LINE_BREAKS = re.compile("[\x00-\x1f\x7f\x85  ]")
@@ -209,6 +214,8 @@ def validate(entry, stem, bundled_entry, on):
     if f.get("evidence") and f.get("status") != "untested" and not HANDLE_RE.search(f["evidence"]):
         e.append('evidence has no handle (a URL, a run/dataset ID, or a "double-quoted" output fragment of 20+ chars)')
     hit = FORBIDDEN.search(" ".join([f.get("target", ""), b.get("how", "")]))
+    if not hit and f.get("kind") == "geocoder":
+        hit = GEOCODER_FORBIDDEN.search(b.get("how", ""))
     if hit:
         e.append(f"`how`/`target` mention {hit.group(0)!r}: adapt.md forbids sources needing login, cookies, "
                  "CAPTCHA solving or proxies beyond actor defaults")
@@ -335,6 +342,9 @@ def write_atomic(path, text):
 def apply_change(args, new_entry):
     on = today()
     ov, _ = overlay_dir()
+    if ov.resolve() == SKILL_DIR or SKILL_DIR in ov.resolve().parents:
+        raise Refused(f"overlay: {ov} is inside the installed skill folder. Changes go to a user-owned overlay, never "
+                      "into the bundled files (adapt.md). Point TRIP_SCOUT_HOME elsewhere.")
     if not ID_RE.match(args.id):
         raise Refused(f'id: "{args.id}" must match {ID_RE.pattern}; only <overlay>/sources/<id>.md is writable. '
                       "SKILL.md, reference/legal.md and patterns/ are not editable here: propose an upstream PR text instead.")
@@ -422,6 +432,9 @@ def apply_change(args, new_entry):
     if "last_verified" in front_updates and parse_date(front_updates["last_verified"]) is None:
         raise Refused("schema: last_verified must be a real YYYY-MM-DD date or 'today'")
     hit = FORBIDDEN.search(" ".join([front_updates.get("target", ""), body_updates.get("how", "")]))
+    kind_after = front_updates.get("kind") or (current["front"].get("kind") if current else None)
+    if not hit and kind_after == "geocoder":
+        hit = GEOCODER_FORBIDDEN.search(body_updates.get("how", ""))
     if hit:
         raise Refused(f'invariant: "{hit.group(0)}" found in the new how/target. adapt.md forbids sources needing login, '
                       "cookies, CAPTCHA solving, or proxies beyond actor defaults. If this is a false positive, tell the "
