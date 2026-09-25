@@ -39,11 +39,11 @@ Hard limits:
 
 ## The tool
 
-`scripts/sources.py` (Python 3.8+, no dependencies) applies the rules above that a machine can check:
+`scripts/sources.py` in this skill's folder (Python 3, no dependencies) applies the rules above that a machine can check. Run it with the skill folder's path; `--help` lists the commands.
 
 - `check` validates bundled and overlay entries. Run it before choosing sources. An entry it rejects counts as `untested` for the session, however it was written.
 - `list` shows the merged registry with stale and shadowed flags.
-- `set ID …` and `add ID …` write overlay entries and append the log line. They refuse a missing or vague evidence handle, a shrinking `drop` list, a forbidden technique, or a sixth change in a day. Each refusal names the rule and the next step; if it calls a match a false positive, tell the user rather than rewording and retrying.
+- `set ID …` and `add ID …` write overlay entries and append the log line. Each refusal names the rule it applies and the next step. If you believe a refusal is a false positive, tell the user; do not reword and retry.
 - `--dry-run` prints the diff without writing. Exit code 3 means the overlay is not writable: show the user the printed diff (propose-only).
 
 Without Python, apply the same rules by hand and write the log line yourself.

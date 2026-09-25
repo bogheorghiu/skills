@@ -17,6 +17,7 @@ evidence: "run ByRsawBRFr3ntuQi3 (2026-09-24): priced rows OTP⇄BLQ"   # needs 
 how: what input shape worked
 caveats: what the output does NOT mean
 drop: fields to remove before saving (personal data)
+drop_removed: only in overlay copies: a drop field removed with a reason (written by sources.py)
 ```
 
 The body is free text; keep it short.

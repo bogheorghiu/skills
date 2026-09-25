@@ -6,11 +6,16 @@ name: Skills CI
 #   stranger's agent (a dangling file reference is a failed run nobody reports).
 # - sources.py check: the bundled source registry is what every install starts from; an
 #   invalid entry there is demoted to `untested` for every user of the release.
-# - the two test suites: the linters themselves, including cases that must fail.
-# Unfiltered `push` for the same reason pii-denylist-guard.yml gives: every branch is
-# checked exactly once, and the result still shows on its pull request.
+# - the test suites: the linters, the registry tool and the PII hooks, including cases
+#   that must fail.
+# Triggers: unfiltered `push` checks every branch of this repository once, and the result
+# shows on its pull request. A pull request from a fork pushes nowhere here, so it gets its
+# own `pull_request` run; the job condition below skips same-repo PRs, which `push`
+# already covered, so no commit is checked twice. This workflow reads no secrets, so fork
+# runs lose nothing.
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -18,6 +23,7 @@ permissions:
 
 jobs:
   skills:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,3 +36,5 @@ jobs:
         run: python3 .github/scripts/test_check_skills.py
       - name: Registry tool tests
         run: python3 tests/test_sources.py
+      - name: PII hook tests (the hooks are copied from ex-cog-dev; this keeps them honest here)
+        run: bash .githooks/pre-push.test.sh

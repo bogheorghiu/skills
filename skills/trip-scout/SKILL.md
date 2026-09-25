@@ -2,7 +2,7 @@
 name: trip-scout
 description: Find cheap flights and/or lodging (Ryanair, Wizz, Airbnb, Booking, hotels, B&Bs) for a dated personal trip via a scraping connector, within legal limits, and deliver a visual comparison page. Self-maintains its list of working data sources.
 license: MIT (see LICENSE)
-compatibility: Needs a scraping connector (Apify or equivalent) and a tool that publishes an HTML page. Python 3.8+ runs the optional source-registry checker; the optional photo step also needs Pillow.
+compatibility: Needs a scraping connector (Apify or equivalent) and a tool that publishes an HTML page. Python 3 runs the optional source-registry checker; the optional photo step also needs Pillow.
 metadata:
   version: "2.1"
   layout: "core + patterns/ + sources/ + adapt"
@@ -37,7 +37,7 @@ Flights, lodging, or both, for a dated **personal** trip. The result is one priv
 ## Flow
 
 1. **Brief.** Run `patterns/brief.md`: it asks whose trip it is (invariant 1) and the spend budget. Restate every answer as dates and a night count.
-2. **Sources.** Run `python3 scripts/sources.py check` if Python is available; an entry it rejects counts as `untested` this session. Resolve which actors and sites to use from `sources/` plus the overlay (entry format: `sources/README.md`). Prefer entries with `status: working` and a recent `last_verified`. Read each actor's input schema before its first call.
+2. **Sources.** Run `python3 <this skill's folder>/scripts/sources.py check` if Python is available; an entry it rejects counts as `untested` this session. Resolve which actors and sites to use from `sources/` plus the overlay (entry format: `sources/README.md`). Prefer entries with `status: working` and a recent `last_verified`. Read each actor's input schema before its first call.
 3. **Connector.** If the needed connector is off, ask for exactly that one, at that moment, with one line on why.
 4. **Notice.** Before the first paid run, tell the user in a few sentences what `reference/legal.md` says about platform terms and scraping, and wait for a yes (invariant 2).
 5. **Search.** Run `patterns/flights.md` and/or `patterns/lodging.md`. Set each run's spend cap from the budget left; if the connector has no cap field, say so and ask before each run.

@@ -19,34 +19,63 @@ NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 # `gh skill publish` treats metadata keys prefixed "github-" as install metadata
 # written by `gh skill install` (cli/cli pkg/cmd/skills/publish, findGitHubMetadataKeys).
 INSTALL_PREFIX = "github-"
-REF_RE = re.compile(r"`([A-Za-z0-9_./-]+\.md)(?:\s*§[^`]*)?`")
+# Folder-qualified file references, backticked or plain ("see patterns/lodging.md §5").
+# A bare name such as CHANGELOG.md names a file in the user's overlay, not in the skill.
+REF_RE = re.compile(r"(?<![\w/.-])((?:\.\./)*(?:patterns|reference|references|sources|scripts|assets)/[A-Za-z0-9_./-]+\.(?:md|py|js|json|txt))")
+# Scalars YAML would load as something other than a string (bools incl. YAML 1.1's
+# yes/no/on/off, null, numbers, dates); `gh skill publish` expects string values.
+YAML_NON_STRING = re.compile(r"^(?:|~|null|true|false|yes|no|on|off|[-+]?\d+|[-+]?\d*\.\d+(?:[eE][-+]?\d+)?|\d{4}-\d{2}-\d{2}.*)$", re.I)
+
+
+def strip_comment(v):
+    """Drop a trailing ' # comment' from an unquoted scalar."""
+    if v[:1] in "\"'":
+        return v
+    return re.split(r"\s+#", v, maxsplit=1)[0].rstrip()
 
 
 def parse_frontmatter(text):
-    """Parse the small YAML subset skills use: scalars and one nested map level."""
+    """Parse the YAML subset skills use: scalars, block scalars (| and >), one nested
+    map level (metadata), and block lists. Lists come back as Python lists."""
     if not text.startswith("---\n"):
         raise ValueError("SKILL.md must start with '---' frontmatter")
     end = text.find("\n---", 4)
     if end < 0:
         raise ValueError("frontmatter is not closed with '---'")
-    fm, body = text[4:end], text[end + 4:].lstrip("\n")
-    data, current = {}, None
-    for raw in fm.splitlines():
+    lines, body = text[4:end].splitlines(), text[end + 4:].lstrip("\n")
+    data, i = {}, 0
+    while i < len(lines):
+        raw = lines[i]
+        i += 1
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
-        m = re.match(r"^(\s*)([A-Za-z0-9_-]+):\s*(.*)$", raw)
-        if not m:
+        m = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", raw)
+        if not m or raw[0] in " \t":
             raise ValueError(f"unparseable frontmatter line: {raw!r}")
-        indent, key, val = m.groups()
-        if indent and current is not None:
-            data[current][key] = val
-            continue
-        if indent:
-            raise ValueError(f"indented line without a parent map: {raw!r}")
-        if val == "":
-            data[key], current = {}, key
+        key, val = m.group(1), strip_comment(m.group(2))
+        block = []
+        while i < len(lines) and (not lines[i].strip() or lines[i][0] in " \t"):
+            block.append(lines[i])
+            i += 1
+        if val in ("|", "|-", "|+", ">", ">-", ">+"):
+            parts = [b.strip() for b in block]
+            data[key] = ("\n" if val[0] == "|" else " ").join(parts).strip()
+        elif val == "" and block and block[0].strip().startswith("- "):
+            data[key] = [strip_comment(b.strip()[2:]) for b in block if b.strip()]
+        elif val == "":
+            sub = {}
+            for b in block:
+                if not b.strip():
+                    continue
+                mm = re.match(r"^\s+([A-Za-z0-9_.-]+):\s*(.*)$", b)
+                if not mm:
+                    raise ValueError(f"unparseable nested line under {key}: {b!r}")
+                sub[mm.group(1)] = strip_comment(mm.group(2))
+            data[key] = sub
         else:
-            data[key], current = val, None
+            if block and any(b.strip() for b in block):
+                raise ValueError(f"unexpected indented lines after {key}")
+            data[key] = val
     return data, body
 
 
@@ -61,7 +90,7 @@ def check_skill(skill_dir):
         fm, body = parse_frontmatter(path.read_text(encoding="utf-8"))
     except ValueError as e:
         return [f"{path}: {e}"]
-    name = unquote(fm.get("name", "")) if isinstance(fm.get("name"), str) else ""
+    name = unquote(strip_comment(fm["name"])) if isinstance(fm.get("name"), str) else ""
     if not name:
         errors.append("missing required field: name")
     else:
@@ -84,9 +113,9 @@ def check_skill(skill_dir):
         errors.append("metadata must be a map of string keys to string values")
     elif isinstance(meta, dict):
         for k, v in meta.items():
-            if not (len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'") and re.fullmatch(r"[\d.]+|true|false|null", v):
-                errors.append(f"metadata.{k} = {v} would parse as a non-string; quote it")
-    if isinstance(fm.get("allowed-tools"), dict) or str(fm.get("allowed-tools", "")).startswith("["):
+            if not isinstance(v, str) or not (v[:1] in "\"'" and v[-1:] == v[:1]) and YAML_NON_STRING.match(v):
+                errors.append(f"metadata.{k} = {v!r} would not load as a string in YAML; quote it")
+    if isinstance(fm.get("allowed-tools"), (dict, list)) or str(fm.get("allowed-tools", "")).startswith("["):
         errors.append("allowed-tools must be a space-separated string, not a list")
     leaked = [k for k in meta if k.startswith(INSTALL_PREFIX)] if isinstance(meta, dict) else []
     if leaked:
@@ -94,13 +123,13 @@ def check_skill(skill_dir):
     n = len(body.splitlines())
     if n > 500:
         errors.append(f"SKILL.md body is {n} lines (recommended max 500)")
+    root = skill_dir.resolve()
     for md in sorted(skill_dir.rglob("*.md")):
-        for ref in REF_RE.findall(md.read_text(encoding="utf-8")):
-            # Only folder-qualified paths are skill files; a bare name such as
-            # `CHANGELOG.md` names a file in the user's overlay, not in the skill.
-            if "/" not in ref or ref.startswith(("/", "http")) or "*" in ref:
-                continue
-            if not (skill_dir / ref).is_file():
+        for ref in sorted(set(REF_RE.findall(md.read_text(encoding="utf-8")))):
+            target = (skill_dir / ref).resolve()
+            if root not in target.parents:
+                errors.append(f"{md.relative_to(skill_dir)}: reference `{ref}` points outside the skill folder")
+            elif not target.is_file():
                 errors.append(f"{md.relative_to(skill_dir)}: reference `{ref}` does not resolve inside the skill")
     return [f"{skill_dir.name}: {e}" for e in errors]
 

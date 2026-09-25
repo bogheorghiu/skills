@@ -19,7 +19,7 @@ Or copy `skills/trip-scout/` into your agent's skills folder.
 
 **Demo:** [`examples/bologna-bcbf-2027/`](examples/bologna-bcbf-2027/index.html). Serve the folder and open `index.html` (it loads `data.js`, `streets.js` and `routes.js` beside it). Lodging for a book fair in Bologna, April 2027, with an EN/RO switch.
 
-**What you need:** an agent with a scraping connector (the bundled sources use Apify actors, which are paid per run) and a way to publish or open an HTML page. Python 3.8+ is optional; it runs the source-registry checker.
+**What you need:** an agent with a scraping connector (the bundled sources use Apify actors, which are paid per run) and a way to publish or open an HTML page. Python 3 is optional; it runs the source-registry checker.
 
 **Limits, by design.** The skill stops if the trip is for a business. Before the first paid run it tells you that platform terms generally forbid automated extraction, even for personal use, and waits for your yes. It never works around a refusal, never logs in, never books or pays. It drops hosts' personal data, links photos instead of copying them, and draws maps from OpenStreetMap data instead of copying map tiles. [`reference/legal.md`](skills/trip-scout/reference/legal.md) records what the law and the services' policies say, with sources. It is not legal advice.
 
