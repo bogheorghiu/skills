@@ -23,7 +23,7 @@ Or copy `skills/trip-scout/` into your agent's skills folder.
 
 **Limits, by design.** The skill stops if the trip is for a business. Before the first paid run it tells you that platform terms generally forbid automated extraction, even for personal use, and waits for your yes. It never works around a refusal, never logs in, never books or pays. It drops hosts' personal data, links photos instead of copying them, and draws maps from OpenStreetMap data instead of copying map tiles. [`reference/legal.md`](skills/trip-scout/reference/legal.md) records what the law and the services' policies say, with sources. It is not legal advice.
 
-**It keeps its own list of scrapers current.** Scrapers break and sites change. When one does, the skill records the change, with evidence, in a folder you own (`$TRIP_SCOUT_HOME`, else `$CLAUDE_PLUGIN_DATA/trip-scout`, else `~/.local/share/trip-scout`), so it survives updates and never touches the installed files. It may change that source list on its own, within limits a script checks. Changes to its methods need your approval. Its rules and legal file change only by a reviewed pull request here. The details are in [`patterns/adapt.md`](skills/trip-scout/patterns/adapt.md).
+**It keeps its own list of scrapers current.** Scrapers break and sites change. When one does, the skill records the change, with evidence, in a folder you own outside the install (by default `~/.local/share/trip-scout`; it asks before creating it), so the record survives updates and the installed files stay untouched. It may change that source list on its own, within limits a script checks. Changes to its methods need your approval. Its rules and legal file change only by a reviewed pull request here. The details, including where the folder goes, are in [`patterns/adapt.md`](skills/trip-scout/patterns/adapt.md).
 
 If it fixed a broken source for you, it offers a ready-made pull request text; sending it upstream helps the next user.
 
@@ -52,7 +52,7 @@ Pull requests are welcome, most of all fixes to `sources/` entries backed by a r
 
 ```bash
 python3 .github/scripts/check_skills.py
-python3 skills/trip-scout/scripts/sources.py check
+TRIP_SCOUT_HOME=/tmp/empty python3 skills/trip-scout/scripts/sources.py check   # CI checks the bundled entries only, not your overlay
 python3 .github/scripts/test_check_skills.py
 python3 tests/test_sources.py
 ```
