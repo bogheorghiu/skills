@@ -8,12 +8,14 @@ name: Skills CI
 #   invalid entry there is demoted to `untested` for every user of the release.
 # - the test suites: the linters, the registry tool and the PII hooks, including cases
 #   that must fail.
-# Triggers: every pull request (from this repository or a fork) and every push to main,
-# once each. A job-level skip for same-repo PRs was tried and dropped: a skipped job still
-# posts a passing check of the same name, which could hide a failed push run.
+# Triggers: every pull request (from this repository or a fork) and every push to main or
+# dev, once each. dev is where pull requests land (CLAUDE.md § Branches), so its merge
+# result is checked too, not only each PR head. A job-level skip for same-repo PRs was tried
+# and dropped: a skipped job still posts a passing check of the same name, which could hide
+# a failed push run.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
   workflow_dispatch:
 
