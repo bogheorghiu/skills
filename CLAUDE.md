@@ -30,11 +30,17 @@ CI (`.github/workflows/`) runs the spec checks, the bundled-source check and the
 
 What may not be committed is in `.claude/rules/keep-personal-data-out.md` (it loads every session). The mechanics: CI's denylist jobs read the `PII_DENYLIST` Actions secret; the local hooks read the same name as an environment variable and a gitignored `pii-denylist.local`, per clone after `git config core.hooksPath .githooks`. Each denylist layer is inactive, and says so, until it has terms; the gitleaks secret scan in CI runs regardless.
 
+## Branches and to-dos
+
+Work reaches `dev` through pull requests; `dev` reaches `main` in one reviewed PR, when the owner decides to release. The reason is the next section: merging to `main` is the release, so `main` moves only on purpose. Open pull requests against `dev`, not `main`. Keep `main` the default branch, since install commands may read the default branch and `dev` holds unreleased work.
+
+Open work is tracked in GitHub issues, not in files: a to-do list in a file goes stale while still reading as current.
+
 ## Publishing
 
 `main` is what users install. Merging to `main` is the release; there is no second step that could catch a mistake.
 
-1. Merge only a green, reviewed PR.
+1. Merge only a green, reviewed PR from `dev`, and only when the owner has said to release.
 2. `gh skill publish --dry-run` validates; `gh skill publish --tag vX.Y.Z` adds the `agent-skills` topic and creates the release (GitHub CLI 2.90+).
 3. Check both install paths from a clean folder: `npx skills add bogheorghiu/skills` and `gh skill install bogheorghiu/skills trip-scout`. skills.sh lists a skill once it has been installed through its CLI; there is no separate submission.
 4. Bump `metadata.version` in `SKILL.md` whenever a shipped file changes, so installed copies can tell they are behind.

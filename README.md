@@ -48,7 +48,7 @@ tests/                 tests for the scripts (not shipped with the skill)
 
 ## Contributing
 
-Pull requests are welcome, most of all fixes to `sources/` entries backed by a real run. Run the checks CI runs before you push:
+Pull requests are welcome, most of all fixes to `sources/` entries backed by a real run. Open them against `dev`; `main` is the released version and moves only when a release is cut. Run the checks CI runs before you push:
 
 ```bash
 python3 .github/scripts/check_skills.py
