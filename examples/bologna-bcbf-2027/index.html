@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trip Scout · Bologna demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#f3f5f4;--paper:#fff;--ink:#15262f;--ink2:#4a5b63;--line:#d7dfdd;
+  --accent:#0f6b6b;--accent-soft:#d8ecea;--warm:#c7861a;--warm-soft:#f6ead2;--bnb:#5a6fa0;
+  --ok:#2f7d4a;--unres:#a86b00;--bad:#b3372c;--street:#e4e9e7;--ringfill:rgba(199,134,26,.07);--road:#e2e7e5;--road2:#c9d2cf;--ringroad:#d9a24a;--rail:#8b9794;--rlyfill:rgba(120,130,128,.10);--fierafill:rgba(199,134,26,.16);--iso:#2f7d4a;
+  --f-d:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-b:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-m:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --bg:#0f1719;--paper:#162124;--ink:#e4ecea;--ink2:#9fb0b1;--line:#2a3a3d;
+  --accent:#5cc2bb;--accent-soft:#18383a;--warm:#e0a849;--warm-soft:#3a2e17;--bnb:#8fa3d6;
+  --ok:#6cc48a;--unres:#e0a849;--bad:#ef7b6e;--street:#1d2b2e;--ringfill:rgba(224,168,73,.08);--road:#233235;--road2:#34474a;--ringroad:#a8792c;--rail:#6c7b7c;--rlyfill:rgba(160,170,168,.07);--fierafill:rgba(224,168,73,.16);--iso:#6cc48a;}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#0f1719;--paper:#162124;--ink:#e4ecea;--ink2:#9fb0b1;--line:#2a3a3d;
+  --accent:#5cc2bb;--accent-soft:#18383a;--warm:#e0a849;--warm-soft:#3a2e17;--bnb:#8fa3d6;
+  --ok:#6cc48a;--unres:#e0a849;--bad:#ef7b6e;--street:#1d2b2e;--ringfill:rgba(224,168,73,.08);--road:#233235;--road2:#34474a;--ringroad:#a8792c;--rail:#6c7b7c;--rlyfill:rgba(160,170,168,.07);--fierafill:rgba(224,168,73,.16);--iso:#6cc48a;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-b);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:24px 64px;display:flex;flex-direction:column;gap:34px}
+h1,h2,h3{font-family:var(--f-d);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,4.4vw,42px);font-weight:700}
+h2{font-size:21px;font-weight:700}
+h3{font-size:16px;font-weight:600}
+.eyebrow{font-family:var(--f-m);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.lede{color:var(--ink2);max-width:70ch;margin:8px 0 0}
+a{color:var(--accent)}
+section{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px}
+.pad{padding:16px 18px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--paper)}
+.lang button{font:600 12.5px var(--f-m);padding:7px 12px;border:0;background:transparent;color:var(--ink2);cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.demo{font-size:13px;color:var(--ink2);border-left:3px solid var(--warm);padding-left:10px;max-width:80ch}
+.tl{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.day{padding:10px 8px 12px;border-radius:8px;background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px;min-height:88px}
+.day .d{font:12px var(--f-m);color:var(--ink2)}.day .n{font:700 22px var(--f-d)}.day .t{font-size:12.5px;line-height:1.3}
+.day.fair{background:var(--accent-soft);border-color:transparent}.day.fly{background:var(--warm-soft);border-color:transparent}
+@media (max-width:640px){.tl{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--ink2);align-items:center}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.insight{font-size:16px;max-width:74ch}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:500 13px/1 var(--f-b);padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip:focus-visible,.lang button:focus-visible{outline:2px solid var(--warm);outline-offset:2px}
+.controls .lab{font-size:12.5px;color:var(--ink2)}
+.mapbox{padding:8px;overflow:hidden}
+#map{display:block;width:100%;height:auto;max-width:100%}
+#map text{font-family:var(--f-b)}
+#map .pin{cursor:pointer}
+#map .pin:focus{outline:none}
+#map .pin:focus-visible .shape{stroke:var(--warm);stroke-width:3.5}
+#map .dim{opacity:.22}
+.chart{padding:14px 16px 10px;overflow-x:auto}
+.bars{display:grid;grid-template-columns:minmax(150px,230px) 1fr;gap:6px 12px;align-items:center;min-width:520px}
+.bars .lbl{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bars .lbl b{font:600 13px var(--f-m);margin-right:6px;color:var(--ink2)}
+.track{position:relative;height:22px}
+.bar{position:absolute;left:0;top:3px;height:16px;border-radius:3px;background:var(--accent)}
+.bar.room{background:var(--warm)}.bar.bnb{background:var(--bnb)}
+.bar.out{background:transparent;border:2px solid var(--bad)}
+.val{position:absolute;top:2px;font:600 12px/18px var(--f-m);white-space:nowrap}
+.val span{color:var(--ink2);font-weight:400}
+.axis{grid-column:2;position:relative;height:18px;border-top:1px solid var(--line);font:11px var(--f-m);color:var(--ink2)}
+.axis span{position:absolute;top:3px;transform:translateX(-50%)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.card.sel{border-color:var(--warm);box-shadow:0 0 0 2px var(--warm)}
+.ch{display:flex;gap:10px;align-items:flex-start}
+.num{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--paper);display:grid;place-items:center;font:600 12px var(--f-m)}
+.num.bk{border-radius:7px}.num.out{background:transparent;color:var(--bad);border:2px solid var(--bad)}
+.meta{font-size:12.5px;color:var(--ink2)}
+.price{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.price .big{font:700 24px/1 var(--f-d)}.price .per{font:12.5px var(--f-m);color:var(--ink2)}
+dl.facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:13px;margin:0}
+dl.facts dt{color:var(--ink2);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+dl.facts dd{margin:0;font-family:var(--f-m);font-variant-numeric:tabular-nums}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:11.5px;padding:3px 8px;border-radius:5px;background:var(--bg);border:1px solid var(--line)}
+.tag.good{border-color:var(--ok);color:var(--ok)}.tag.warn{border-color:var(--unres);color:var(--unres)}.tag.bad{border-color:var(--bad);color:var(--bad)}
+.note{font-size:12.5px;color:var(--ink2);border-left:3px solid var(--line);padding-left:10px}
+.note.u{border-color:var(--unres)}.note.x{border-color:var(--bad)}
+.links{display:flex;gap:14px;flex-wrap:wrap;margin-top:auto;font-size:13.5px;font-weight:600}
+.links a{text-decoration:none}.links a:hover{text-decoration:underline}
+.st{font:600 10.5px var(--f-m);letter-spacing:.04em;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.st.g{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.st.u{background:color-mix(in srgb,var(--unres) 18%,transparent);color:var(--unres)}
+.st.gap{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:540px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+td.n{font-family:var(--f-m);white-space:nowrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+ul.clean{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.bar.hatch{background:repeating-linear-gradient(45deg,var(--bnb) 0 3px,transparent 3px 7px);border:1px solid var(--bnb);opacity:.75}
+.links .showmap{font:600 13.5px var(--f-b);color:var(--accent);background:none;border:0;padding:0;cursor:pointer}
+.links .showmap:hover{text-decoration:underline}.links .showmap:focus-visible{outline:2px solid var(--warm);outline-offset:2px}
+#scatter{display:block;width:100%;height:auto}#scatter text{font-family:var(--f-b)}#scatter .pin{cursor:pointer}#scatter .dim{opacity:.22}
+#scatter .pin:focus{outline:none}#scatter .pin:focus-visible circle,#scatter .pin:focus-visible rect{stroke:var(--warm);stroke-width:3.5}
+@media (max-width:640px){.mapbox{padding:4px}}
+.route{margin:0;font-size:14px;border-left:3px solid var(--warm);padding-left:10px;min-height:1.5em}
+</style>
+
+</head><body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow" data-i="eyebrow"></div>
+      <h1 data-i="title"></h1>
+      <p class="lede" data-i="lede"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="l-en" aria-pressed="true">EN</button><button id="l-ro" aria-pressed="false">RO</button>
+    </div>
+  </header>
+  <p class="demo" data-i="demo"></p>
+
+  <section><h2 data-i="h_cal"></h2><div class="tl" id="tl"></div>
+    <div class="legend"><span><i class="sw" style="background:var(--warm-soft);border:1px solid var(--warm)"></i><span data-i="lg_fly"></span></span><span><i class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></i><span data-i="lg_fair"></span></span><span data-i="lg_nights"></span></div>
+  </section>
+
+  <section><h2 data-i="h_key"></h2><div class="panel pad insight" id="insight"></div></section>
+
+  <section><h2 data-i="h_map"></h2>
+    <div class="controls" role="group"><span class="lab" data-i="show"></span>
+      <button class="chip" id="f-all" aria-pressed="true"></button>
+      <button class="chip" id="f-in" aria-pressed="false" data-i="f_in"></button>
+      <button class="chip" id="f-apt" aria-pressed="false" data-i="f_apt"></button>
+    </div>
+    <p class="route" id="route" aria-live="polite"></p>
+    <div class="panel mapbox"><svg id="map" role="img" aria-labelledby="maptitle"><title id="maptitle">Schematic map</title></svg></div>
+    <div class="legend">
+      <span><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="var(--accent)"/></svg> <span data-i="lg_in"></span></span>
+      <span><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="var(--paper)" stroke="var(--bad)" stroke-width="2"/></svg> <span data-i="lg_out"></span></span>
+      <span><svg width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3" fill="var(--accent)"/></svg> <span data-i="lg_shape"></span></span>
+      <span><svg width="24" height="10" aria-hidden="true"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--ringroad)" stroke-width="4" stroke-linecap="round"/></svg> <span data-i="lg_ring"></span></span>
+      <span><svg width="24" height="10" aria-hidden="true"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--warm)" stroke-width="3.5" stroke-linecap="round"/></svg> <span data-i="lg_iso"></span></span>
+      <span><svg width="16" height="16" aria-hidden="true"><rect x="1" y="3" width="14" height="10" fill="var(--fierafill)" stroke="var(--warm)"/><circle cx="8" cy="8" r="3.5" fill="var(--warm)"/></svg> <span data-i="lg_fiera"></span></span>
+    </div>
+    <p class="meta" data-i="map_note"></p>
+  </section>
+
+  <section><h2 data-i="h_scatter"></h2>
+    <div class="panel chart"><svg id="scatter" role="img" aria-label=""></svg><p class="meta" style="margin:6px 0 0" data-i="sc_note"></p></div>
+  </section>
+
+  <section><h2 data-i="h_price"></h2>
+    <div class="panel chart"><div class="bars" id="bars"></div>
+      <div class="legend" style="padding-top:8px">
+        <span><i class="sw" style="background:var(--accent)"></i><span data-i="k_apt"></span></span>
+        <span><i class="sw" style="background:var(--warm)"></i><span data-i="k_room"></span></span>
+        <span><i class="sw" style="background:var(--bnb)"></i><span data-i="k_bnb"></span></span>
+        <span><i class="sw" style="border:2px solid var(--bad)"></i><span data-i="lg_out"></span></span>
+        <span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--bnb) 0 2px,transparent 2px 5px);border:1px solid var(--bnb)"></i><span data-i="k_hatch"></span></span>
+      </div></div>
+  </section>
+
+  <section><h2 data-i="h_list"></h2>
+    <div class="controls" role="group"><span class="lab" data-i="sort"></span>
+      <button class="chip" id="s-price" aria-pressed="true" data-i="s_price"></button>
+      <button class="chip" id="s-fiera" aria-pressed="false" data-i="s_fiera"></button>
+      <button class="chip" id="s-rating" aria-pressed="false" data-i="s_rating"></button>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section><h2 data-i="h_fly"></h2>
+    <div class="two">
+      <div class="panel tw"><table><thead><tr><th></th><th data-i="t_out"></th><th data-i="t_back"></th><th data-i="t_base"></th></tr></thead>
+        <tbody><tr><td><b>Wizz Air</b></td><td class="n">179 RON (~35 €)</td><td class="n">49.99 €</td><td class="n"><b>~85 €</b></td></tr>
+        <tr><td>Ryanair</td><td class="n">127.99 € · 09:50</td><td class="n">63.99 € · 06:25</td><td class="n">~192 €</td></tr></tbody></table>
+        <div class="pad meta" data-i="fly_note"></div></div>
+      <div class="panel pad"><h3 style="margin-bottom:10px" data-i="h_hidden"></h3><ul class="clean" id="hidden"></ul></div>
+    </div>
+  </section>
+
+  <section><h2 data-i="h_notes"></h2>
+    <div class="two">
+      <div class="panel pad"><h3 style="margin-bottom:10px" data-i="h_tax"></h3><ul class="clean" id="taxnotes"></ul></div>
+      <div class="panel pad"><h3 style="margin-bottom:10px" data-i="h_move"></h3><ul class="clean" id="movenotes"></ul></div>
+    </div>
+    <p class="meta" id="sources"></p>
+  </section>
+</div>
+
+<script src="data.js"></script>
+<script src="streets.js"></script>
+<script src="routes.js"></script>
+<script>
+(function(){
+const T={
+en:{eyebrow:"Trip Scout · demo output · Bologna Children's Book Fair, 5–8 Apr 2027",title:"Bologna, 4–11 April 2027",
+lede:"One direct OTP⇄BLQ ticket, plus lodging for two for seven nights, as central as possible inside the old-city ring and toward the fair.",
+demo:"Demo of the trip-scout skill, built from live prices scraped on 24 Sep 2026. Photos are not copied (each card links to its listing) and the map is schematic, not third-party tiles. Both follow the skill's own rules.",
+h_cal:"Calendar",lg_fly:"flight",lg_fair:"fair (9:00–18:30; Thursday until 15:00)",lg_nights:"7 nights: Sun 4 → Sun 11",
+h_key:"Bottom line",h_map:"Map",show:"Show:",all:"All",f_in:"Inside the ring only",f_apt:"Whole apartments only",
+lg_in:"inside the ring",lg_out:"outside the ring",lg_shape:"square = Booking · circle = Airbnb",lg_ring:"ring road (viali)",lg_iso:"walking route of the selected option; 17′ = minutes on foot to the entrance",lg_fiera:"fair grounds and entrance",
+map_note:"Streets, railway and fair grounds: OpenStreetMap vector data (ODbL). Walking times and distances are routed along OSM streets (OSRM foot profile, ~4.5 km/h, no waiting at crossings), not straight lines. Pins sit on the listing coordinates; where pins overlap they are pushed apart and a thin line points to the true spot. Airbnb coordinates can be approximate. Tap a pin (or \u201cShow on map\u201d on a card) to draw its route. On narrow screens minutes and prices show only for the selected pin; the chart below has them all.",
+entrance:"entrance · Piazza della Costituzione",route0:"Select a pin or a card to see its walking route to the fair entrance.",onfoot:"along streets",h_scatter:"Price against walking time",sc_x:"minutes on foot to the fair entrance",sc_y:"total for 7 nights",sc_hint:"cheaper and closer",sc_note:"Each marker is one listing, same numbers and shapes as on the map. Bottom-left is the best trade-off. Where markers would overlap they are nudged apart; a small dot marks the exact value.",showmap:"Show on map",bkgap:"Booking: part of the total not in the displayed price",
+h_price:"Seven nights, total",k_apt:"whole apartment",k_room:"private room (Airbnb)",k_bnb:"B&B / guesthouse (Booking)",k_hatch:"Booking: total above the displayed price",
+h_list:"Options",sort:"Sort by:",s_price:"price",s_fiera:"distance to the fair",s_rating:"rating",
+h_fly:"Flight (1 person, direct OTP⇄BLQ)",t_out:"Out · Sun 4 Apr",t_back:"Back · Sun 11 Apr",t_base:"Base",
+fly_note:"Base fare, no hold bag. Wizz calendar data has no flight times. RON→EUR is approximate.",h_hidden:"Wizz hidden costs",
+hidden:[["Free online check-in opens only 24 h before departure without a paid seat. At the desk: €40–50 per flight.","g","GROUNDED"],["Free bag is 40×30×20 cm, 10 kg (since Nov 2025).","g","GROUNDED"],["20 kg hold bag: buy it online at booking. At the gate it's ~€65.","gap","GAP · route price not looked up"],["WIZZ Go bundle vs Basic + bag: compare at checkout.","u","UNRESOLVED"],["Pay in the fare's currency; decline the airline's conversion.","u","UNRESOLVED · markup size"]],
+h_notes:"Before you book",h_tax:"Tourist tax (imposta di soggiorno)",
+taxnotes:[["Short lets: 10.5% of the nightly price, capped at €7 per person per night, for the first 5 nights. Maximum for two people: €70.",""],["On 7 of the 8 Airbnb listings that show a tax line, the line equals 10.5% × nightly × 5 (capped at €70), so the tax is already in their totals.","g","GROUNDED · arithmetic"],["On Booking, displayed and total price differ, and what each includes is unclear.","u","UNRESOLVED"]],
+h_move:"Getting around",
+movenotes:[["Airport → station: Marconi Express monorail, €12.80 in Dec 2025. 2027 price:","u","UNRESOLVED"],["Listings → fair entrance: 17–48 min on foot, routed along OSM streets (OSRM foot profile). Real time can be longer: crossings and traffic lights are not counted. Visitor entrance: Costituzione (official BCBF 2027 page).","g","GROUNDED · routing"],["Bus from the central station: TPER 35 and 38 (back: 35 and 39); from the centre: bus 28. Both reach the Costituzione entrance.","g","GROUNDED · BCBF page"],["Cancellation terms for the Airbnb listings weren't in the scraped data. Check each one.","gap","GAP"]],
+sources:"Sources: BCBF general information · Airbnb and Booking.com via Apify (24 Sep 2026) · Ryanair/Wizz fare calendars via Apify · Wizz Air check-in page · AirHelp · Bologna tourist-tax rules 2026 · Il Fatto Quotidiano (Marconi Express). Visitor entrance: BCBF 2027 general information and \u201cHow to get there\u201d pages. Walking routes: OSRM on routing.openstreetmap.de (FOSSGIS), 25 Sep 2026. Map data © OpenStreetMap contributors (ODbL); found an error? openstreetmap.org/fixthemap. The ring outline is approximate.",
+days:[["Sun","4","Fly out · check in","fly"],["Mon","5","Fair","fair"],["Tue","6","Fair","fair"],["Wed","7","Fair","fair"],["Thu","8","Fair, until 15:00","fair"],["Fri","9","Free",""],["Sat","10","Free",""],["Sun","11","Check out · fly back","fly"]],
+kinds:{apt:"Whole apartment",room:"Private room",bnb:"B&B",gh:"Guesthouse"},
+lm:{fiera:"BolognaFiere · BCBF",station:"Central station",piazza:"Piazza Maggiore",torri:"Two Towers"},
+insight:(a,r,n,o)=>`Inside the ring, a <strong>whole apartment</strong> costs <strong>${a}</strong> for 7 nights; a <strong>private room</strong> costs <strong>${r}</strong>. The whole apartment inside the ring closest to the fair is <strong>${n.name}</strong>, ~${n.walk} min on foot from the fair entrance, at ${eur(n.total)}.${o?` Outside the ring, <strong>${o.name}</strong> is ~${o.walk} min away at ${eur(o.total)}${o.walk<n.walk&&o.total<n.total?': cheaper and closer, so the premium buys the old town, not access to the fair':''}.`:''}`,
+per:"/night",pp:"/person",toFair:"To the fair, on foot",toTorri:"To Two Towers",rating:"Rating",src:"Price source",rev:"reviews",norate:"no rating",
+in:"inside the ring",out:"outside the ring",nearT:"by the Two Towers",of:"of the Two Towers",kitchen:"kitchen",ac:"air-con",lift:"lift",
+fc:"free cancellation: ",nonref:"cheapest rate is non-refundable",thin:"too few reviews",open:"Open on ",osm:"Map ↗",
+taxIn:v=>`total includes the tourist tax (${v}), matching the rule`,taxMis:v=>`tax line ${v} doesn't match the rule, so it includes something else`,taxNo:v=>`no tax line: tourist tax likely extra, ~€${v}`,bk:(d,t)=>`Booking shows €${d} and a total of €${t}; which taxes are included is unclear`,walk:"min",km:"km"},
+ro:{eyebrow:"Trip Scout · demo · Bologna Children's Book Fair, 5–8 apr. 2027",title:"Bologna, 4–11 aprilie 2027",
+lede:"Un bilet OTP⇄BLQ direct și cazare pentru două persoane, șapte nopți, cât mai central, în interiorul centurii vechi, spre târg.",
+demo:"Demo pentru skill-ul trip-scout, construit din prețuri live extrase pe 24 sept. 2026. Pozele nu sunt copiate (fiecare fișă duce la anunț), iar harta e schematică, nu din plăci luate de la terți. Ambele respectă regulile skill-ului.",
+h_cal:"Calendarul",lg_fly:"zbor",lg_fair:"târg (9:00–18:30; joi până la 15:00)",lg_nights:"7 nopți: dum. 4 → dum. 11",
+h_key:"Pe scurt",h_map:"Harta",show:"Arată:",all:"Toate",f_in:"Doar în interiorul centurii",f_apt:"Doar apartamente întregi",
+lg_in:"în interiorul centurii",lg_out:"în afara centurii",lg_shape:"pătrat = Booking · cerc = Airbnb",lg_ring:"centura (viali)",lg_iso:"traseul pe jos al variantei alese; 17′ = minute pe jos până la intrare",lg_fiera:"incinta târgului și intrarea",
+map_note:"Străzile, calea ferată și incinta târgului: date vectoriale OpenStreetMap (ODbL). Timpii și distanțele pe jos sunt calculate pe străzile din OSM (profilul pietonal OSRM, ~4,5 km/h, fără așteptare la treceri), nu în linie dreaptă. Fiecare marcaj stă pe coordonatele anunțului; unde se suprapun, marcajele sunt depărtate, iar o linie subțire arată locul real. La Airbnb, coordonatele pot fi aproximative. Apasă pe un marcaj (sau pe „Arată pe hartă” într-o fișă) ca să vezi traseul. Pe ecrane înguste, minutele și prețul apar doar la marcajul selectat; graficul de mai jos le are pe toate.",
+entrance:"intrarea · Piazza della Costituzione",route0:"Alege un marcaj sau o fișă ca să vezi traseul pe jos până la intrarea în târg.",onfoot:"pe străzi",h_scatter:"Preț față de timpul de mers",sc_x:"minute pe jos până la intrarea în târg",sc_y:"total pe 7 nopți",sc_hint:"mai ieftin și mai aproape",sc_note:"Fiecare marcaj e un anunț, cu aceleași numere și forme ca pe hartă. Colțul din stânga-jos e cel mai bun compromis. Unde marcajele s-ar suprapune, sunt depărtate puțin; un punct mic arată valoarea exactă.",showmap:"Arată pe hartă",bkgap:"Booking: partea din total care nu apare în prețul afișat",
+h_price:"Cât costă 7 nopți",k_apt:"apartament întreg",k_room:"cameră privată (Airbnb)",k_bnb:"B&B / pensiune (Booking)",k_hatch:"Booking: totalul peste prețul afișat",
+h_list:"Variantele",sort:"Ordonează după:",s_price:"preț",s_fiera:"distanța până la târg",s_rating:"rating",
+h_fly:"Zborul (1 persoană, direct OTP⇄BLQ)",t_out:"Dus · dum. 4 apr.",t_back:"Întors · dum. 11 apr.",t_base:"Bază",
+fly_note:"Tarif de bază, fără bagaj de cală. Datele Wizz nu au orele zborurilor. Cursul RON→EUR e aproximativ.",h_hidden:"Costurile ascunse la Wizz",
+hidden:[["Fără loc cumpărat, check-in-ul online gratuit se deschide doar cu 24 h înainte. La ghișeu: 40–50 € pe zbor.","g","GROUNDED"],["Geanta gratuită: 40×30×20 cm, 10 kg (din nov. 2025).","g","GROUNDED"],["Bagajul de cală de 20 kg îl cumperi online, la rezervare. La poartă costă ~65 €.","gap","GAP · preț pe rută necăutat"],["Pachetul WIZZ Go față de Basic + bagaj: compară la plată.","u","UNRESOLVED"],["Plătește în moneda biletului și refuză conversia oferită de companie.","u","UNRESOLVED · cât e adaosul"]],
+h_notes:"De știut înainte de rezervare",h_tax:"Taxa de soggiorno",
+taxnotes:[["La închirierile scurte: 10,5% din prețul pe noapte, plafonat la 7 € de persoană pe noapte, pentru primele 5 nopți. Pentru două persoane, maximum 70 €.",""],["La 7 din cele 8 anunțuri Airbnb care au linie de taxe, linia e egală cu 10,5% × prețul pe noapte × 5 (plafonat la 70 €). Deci taxa e deja inclusă în total.","g","GROUNDED · aritmetică"],["La Booking, prețul afișat și cel total diferă și nu e clar ce include fiecare.","u","UNRESOLVED"]],
+h_move:"Drumurile",
+movenotes:[["Aeroport → gară: Marconi Express, 12,80 € în dec. 2025. Prețul din 2027:","u","UNRESOLVED"],["De la cazări la intrarea în târg: 17–48 min pe jos, pe traseu real pe străzile din OSM (profilul pietonal OSRM). În realitate poate dura mai mult: trecerile și semafoarele nu sunt socotite. Intrarea vizitatorilor: Costituzione (pagina oficială BCBF 2027).","g","GROUNDED · rutare"],["Autobuz din gara centrală: TPER 35 și 38 (la întoarcere 35 și 39); din centru: autobuzul 28. Ambele ajung la intrarea Costituzione.","g","GROUNDED · pagina BCBF"],["Condițiile de anulare Airbnb nu apar în datele extrase. Verifică-le pe fiecare.","gap","GAP"]],
+sources:"Surse: BCBF, informații generale · Airbnb și Booking.com prin Apify (24.09.2026) · calendarele de tarife Ryanair/Wizz prin Apify · pagina de check-in Wizz Air · AirHelp · regulile taxei de soggiorno din Bologna, 2026 · Il Fatto Quotidiano (Marconi Express). Intrarea vizitatorilor: paginile BCBF 2027 „Informazioni generali” și „Come arrivare”. Trasee pe jos: OSRM pe routing.openstreetmap.de (FOSSGIS), 25.09.2026. Date © OpenStreetMap contributors (ODbL); o greșeală pe hartă? openstreetmap.org/fixthemap. Conturul centurii e aproximativ.",
+days:[["dum","4","Zbor dus · check-in","fly"],["lun","5","Târg","fair"],["mar","6","Târg","fair"],["mie","7","Târg","fair"],["joi","8","Târg, până la 15:00","fair"],["vin","9","Liber",""],["sâm","10","Liber",""],["dum","11","Check-out · zbor întors","fly"]],
+kinds:{apt:"Apartament întreg",room:"Cameră privată",bnb:"B&B",gh:"Pensiune"},
+lm:{fiera:"BolognaFiere · BCBF",station:"Gara centrală",piazza:"Piazza Maggiore",torri:"Due Torri"},
+insight:(a,r,n,o)=>`În interiorul centurii, un <strong>apartament întreg</strong> costă <strong>${a}</strong> pentru 7 nopți, iar o <strong>cameră privată</strong> <strong>${r}</strong>. Apartamentul întreg din centură cel mai apropiat de târg e <strong>${n.name}</strong>, la ~${n.walk} min pe jos de intrarea în târg, cu ${eur(n.total)}.${o?` În afara centurii, <strong>${o.name}</strong> e la ~${o.walk} min, cu ${eur(o.total)}${o.walk<n.walk&&o.total<n.total?': mai ieftin și mai aproape, deci în plus plătești orașul vechi, nu accesul la târg':''}.`:''}`,
+per:"/noapte",pp:"/pers.",toFair:"Până la târg, pe jos",toTorri:"Până la Due Torri",rating:"Rating",src:"Sursa prețului",rev:"recenzii",norate:"fără rating",
+in:"în centură",out:"în afara centurii",nearT:"lângă Due Torri",of:"de Due Torri",kitchen:"bucătărie",ac:"aer condiționat",lift:"lift",
+fc:"anulare gratuită: ",nonref:"tariful cel mai mic e nerambursabil",thin:"prea puține recenzii",open:"Deschide pe ",osm:"Hartă ↗",
+taxIn:v=>`totalul include taxa de soggiorno (${v}), conform regulii`,taxMis:v=>`linia de taxe (${v}) nu se potrivește cu regula, deci include și altceva`,taxNo:v=>`fără linie de taxe: taxa de soggiorno se plătește probabil separat, ~${v} €`,bk:(d,t)=>`Booking afișează ${d} € și un total de ${t} €; nu e clar ce taxe sunt incluse`,walk:"min",km:"km"}};
+const dirs={en:{N:"north",NE:"north-east",E:"east",SE:"south-east",S:"south",SV:"south-west",V:"west",NV:"north-west"},ro:{N:"nord",NE:"nord-est",E:"est",SE:"sud-est",S:"sud",SV:"sud-vest",V:"vest",NV:"nord-vest"}};
+const L=DATA.listings;let lang='en',filter='all',sortBy='price',selected=null;
+const $=s=>document.querySelector(s);
+const eur=v=>'€'+Math.round(v).toLocaleString(lang==='ro'?'ro-RO':'en-GB');
+const dec=v=>v.toFixed(2).replace('.',lang==='ro'?',':'.');
+const isApt=x=>x.kind==='apt';
+const vis=()=>L.filter(x=>filter==='all'||(filter==='in'&&x.inside)||(filter==='apt'&&isApt(x)));
+function taxNote(x,t){
+  if(x.src==='Booking')return[t.bk(Math.round(x.displayed),Math.round(x.total)),'u'];
+  if(!x.taxLine){const est=Math.min(x.total/7*0.105,14)*5;return[t.taxNo(Math.round(est)),'u'];}
+  const line=parseFloat(x.taxLine.replace(/[^\d.]/g,''));const nightly=(x.total-line)/7;const exp=Math.min(nightly*0.105,14)*5;
+  return Math.abs(exp-line)<1.5?[t.taxIn(x.taxLine),'']:[t.taxMis(x.taxLine),'x'];
+}
+/* ---- geometry (OSM vector data in streets.js, ODbL) ---- */
+const ENT=[44.5118122,11.3622141]; /* BCBF 2027 visitor entrance 'Costituzione' (fair's own visitor pages); point = OSM way 382707838, pedestrian forecourt Piazza della Costituzione, centroid via Nominatim 2026-09-25 */
+const rad=d=>d*Math.PI/180;
+const hav=(a,b)=>{const dl=rad(b[0]-a[0]),dn=rad(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dn/2)**2;return 2*6371e3*Math.asin(Math.sqrt(h));};
+/* distances and times are routed along OSM streets (routes.js), never straight-line */
+L.forEach(x=>{const r=ROUTES[x.id];x.dF=r.d/1000;x.walk=r.t;x.route=r.g;});
+const kx=Math.cos(rad(44.498));
+let W=1100,H=1000,MB,FS=1,narrow=false;
+function frame(){
+  const cw=$('#map').parentElement.clientWidth||1000;narrow=cw<640;
+  const b=[...L.map(x=>[x.lat,x.lng]),...DATA.ring,ENT,[44.5162,11.3710]];
+  let a=1e9,c=-1e9,d=1e9,e=-1e9;b.forEach(p=>{const x=p[1]*kx;a=Math.min(a,x);c=Math.max(c,x);d=Math.min(d,p[0]);e=Math.max(e,p[0]);});
+  const px=(c-a)*0.05,py=(e-d)*0.05;MB={a:a-px,c:c+px,d:d-py,e:e+py};
+  W=narrow?760:1100;H=Math.round(W*(MB.e-MB.d)/(MB.c-MB.a));FS=W/Math.max(cw-16,300);
+}
+const P=(la,ln)=>[(ln*kx-MB.a)/(MB.c-MB.a)*W,(MB.e-la)/(MB.e-MB.d)*H];
+const mpx=()=>W/((MB.c-MB.a)*111320);
+const path=pts=>pts.map((p,i)=>{const q=P(p[0],p[1]);return (i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)}).join('');
+const LABELS={"Via Stalingrado":1,"Via dell'Indipendenza":1,"Via Irnerio":1,"Via Zamboni":1,"Strada Maggiore":1,"Via San Vitale":1,"Via Ugo Bassi":1,"Via Mascarella":1,"Via del Borgo di San Pietro":1,"Via Ferrarese":1,"Via Santo Stefano":1,"Viale Pietro Pietramellara":1,"Viale Angelo Masini":1,"Viale Carlo Berti Pichat":1,"Via Galliera":1};
+let staticLayer=null,staticKey='';
+function staticSvg(t){
+  const key=W+'x'+H+lang+FS.toFixed(3);if(staticKey===key)return staticLayer;
+  const f=FS;let s='';
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="var(--paper)"/>`;
+  for(const [cl,n,pts] of STREETS){if(cl==='rly')s+=`<path d="${path(pts)}Z" fill="var(--rlyfill)" stroke="none"/>`;}
+  const ring=DATA.ring.map(p=>P(p[0],p[1]).map(v=>v.toFixed(1)).join(',')).join(' ');
+  s+=`<polygon points="${ring}" fill="var(--ringfill)" stroke="none"/>`;
+  for(const [cl,n,pts] of STREETS){if(cl==='fiera')s+=`<path d="${path(pts)}Z" fill="var(--fierafill)" stroke="var(--warm)" stroke-width="${1.5*f}"/>`;}
+  const sty={a:['var(--road)',1.1],v:['var(--road2)',2],k:['var(--road2)',2.4],r:['var(--ringroad)',4.2],rail:['var(--rail)',1.6]};
+  for(const cl of ['a','v','k','rail','r']){let d='';for(const [c,n,pts] of STREETS)if(c===cl)d+=path(pts);
+    const [col,w]=sty[cl];s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w*f}" stroke-linecap="round" stroke-linejoin="round"${cl==='rail'?` stroke-dasharray="${6*f} ${4*f}"`:''}/>`;}
+  // street labels along the longest piece of each named street
+  const best={};for(const [c,n,pts] of STREETS){if(!LABELS[n])continue;const len=pts.reduce((acc,p,i)=>i?acc+hav(pts[i-1],p):0,0);if(!best[n]||len>best[n][0])best[n]=[len,pts];}
+  let i=0;if(!narrow)for(const n in best){const [len,pts]=best[n];if(len<260)continue;let q=pts.map(p=>P(p[0],p[1]));if(q[0][0]>q[q.length-1][0])q=q.reverse();
+    const id='sl'+(i++);s+=`<path id="${id}" d="${q.map((p,j)=>(j?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('')}" fill="none" stroke="none"/>`+
+    `<text font-size="${10.5*f}" fill="var(--ink2)" paint-order="stroke" stroke="var(--paper)" stroke-width="${3*f}" dy="${-3*f}"><textPath href="#${id}" startOffset="50%" text-anchor="middle">${n.replace('Viale ','V.le ').replace('Via ','Via ')}</textPath></text>`;}
+  staticLayer=s;staticKey=key;return s;
+}
+function drawMap(){
+  frame();const t=T[lang],svg=$('#map'),f=FS;svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  let s=`<title id="maptitle">${t.h_map}</title>`+staticSvg(t);
+  // landmarks
+  const lm=[['station',[44.5058,11.3431],'end',-10,-8],['piazza',[44.4937,11.3430],'end',-10,4],['torri',[44.4943,11.3466],'start',10,16]];
+  for(const [k2,[la,ln],anc,dx,dy] of lm){const [x,y]=P(la,ln);
+    s+=`<g aria-hidden="true"><rect x="${x-5*f}" y="${y-5*f}" width="${10*f}" height="${10*f}" transform="rotate(45 ${x} ${y})" fill="var(--ink)"/><text x="${x+dx*f}" y="${y+dy*f}" text-anchor="${anc}" font-size="${(narrow?11:12.5)*f}" font-weight="700" fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="${4*f}">${t.lm[k2]}</text></g>`;}
+  const [ex,ey]=P(ENT[0],ENT[1]);
+  {const fw=Math.max(t.lm.fiera.length*8.4,t.entrance.length*6.4)*f,left=ex+12*f+fw>W-44*f,lx=left?ex-12*f:ex+12*f,an=left?'end':'start';
+  s+=`<g aria-hidden="true"><circle cx="${ex}" cy="${ey}" r="${8*f}" fill="var(--warm)" stroke="var(--paper)" stroke-width="${2.5*f}"/><text x="${lx}" y="${ey-10*f}" text-anchor="${an}" font-size="${14*f}" font-weight="700" fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="${4*f}">${t.lm.fiera}</text>${narrow?'':`<text x="${lx}" y="${ey+6*f}" text-anchor="${an}" font-size="${11*f}" fill="var(--ink2)" paint-order="stroke" stroke="var(--paper)" stroke-width="${4*f}">${t.entrance}</text>`}</g>`;}
+  // selected: straight line to the entrance
+  const v=new Set(vis().map(x=>x.id));
+  const pos={},tru={};L.forEach(x=>{tru[x.id]=P(x.lat,x.lng);pos[x.id]=tru[x.id].slice();});
+  const pr=(narrow?10:13)*f,chip=id=>!narrow||id===selected;
+  const box=x=>{const lw=(`${x.walk}′ · ${eur(x.total)}`.length*7.2+10)*f;return chip(x.id)?[Math.max(pr,lw/2)+3*f,pr,pr+19*f]:[pr+3*f,pr+2*f,pr+2*f];};
+  for(let it=0;it<80;it++){let moved=0;for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const A=pos[L[i].id],B=pos[L[j].id],a=box(L[i]),b=box(L[j]);
+    const ox=a[0]+b[0]-Math.abs(B[0]-A[0]);const top=Math.min(A[1]-a[1],B[1]-b[1]),oy=Math.min(A[1]+a[2],B[1]+b[2])-Math.max(A[1]-a[1],B[1]-b[1]);
+    if(ox>0&&oy>0){moved=1;if(ox<oy){const m=ox/2+.5,sg=(B[0]>=A[0]?1:-1);A[0]-=sg*m;B[0]+=sg*m;}else{const m=oy/2+.5,sg=(B[1]>=A[1]?1:-1);A[1]-=sg*m;B[1]+=sg*m;}}}if(!moved)break;}
+  let route=t.route0;
+  if(selected){const x=L.find(y=>y.id===selected);if(x){const [px,py]=tru[x.id];
+    s+=`<path d="${path(x.route)}" fill="none" stroke="var(--paper)" stroke-width="${7*f}" stroke-linecap="round" stroke-linejoin="round"/><path d="${path(x.route)}" fill="none" stroke="var(--warm)" stroke-width="${3.5*f}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    route=`<b>${x.n}. ${x.name}</b> → ${t.entrance}: ${dec(x.dF)} km ${t.onfoot}, ~${x.walk} min`;}}
+  const order=L.slice().sort((a,b)=>(a.id===selected)-(b.id===selected));
+  for(const x of order){const [px,py]=pos[x.id],[tx,ty]=tru[x.id];const out=!x.inside,bk=x.src==='Booking',r=pr;
+    const fill=out?'var(--paper)':'var(--accent)',stroke=out?'var(--bad)':'var(--paper)',tc=out?'var(--bad)':'var(--paper)';
+    let g='';
+    if(Math.hypot(px-tx,py-ty)>6*f)g+=`<line x1="${tx}" y1="${ty}" x2="${px}" y2="${py}" stroke="var(--ink2)" stroke-width="${1*f}"/><circle cx="${tx}" cy="${ty}" r="${2.2*f}" fill="var(--ink2)"/>`;
+    if(selected===x.id)g+=`<circle cx="${px}" cy="${py}" r="${r+7*f}" fill="none" stroke="var(--warm)" stroke-width="${3*f}"/>`;
+    g+=bk?`<rect class="shape" x="${px-r}" y="${py-r}" width="${2*r}" height="${2*r}" rx="${6*f}" fill="${fill}" stroke="${stroke}" stroke-width="${2.5*f}"/>`:`<circle class="shape" cx="${px}" cy="${py}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${2.5*f}"/>`;
+    g+=`<text x="${px}" y="${py+(narrow?3.8:4.5)*f}" text-anchor="middle" font-size="${(narrow?10.5:12.5)*f}" font-weight="700" font-family="JetBrains Mono, monospace" fill="${tc}">${x.n}</text>`;
+    const lab=`${x.walk}′ · ${eur(x.total)}`,lw=(lab.length*7.2+10)*f;
+    if(chip(x.id))g+=`<rect x="${px-lw/2}" y="${py+r+2*f}" width="${lw}" height="${16*f}" rx="${4*f}" fill="var(--ink)" opacity=".86"/><text x="${px}" y="${py+r+14*f}" text-anchor="middle" font-size="${11.5*f}" font-weight="600" font-family="JetBrains Mono, monospace" fill="var(--paper)">${lab}</text>`;
+    s+=`<g class="pin${v.has(x.id)?'':' dim'}" tabindex="0" role="button" data-id="${x.id}" aria-label="${x.n}. ${x.name.replace(/"/g,'')}, ${eur(x.total)}, ~${x.walk} min">${g}</g>`;}
+  // scale bar, north, attribution
+  const sb=500*mpx(),sx=W-24*f-sb,sy=H-26*f;
+  s+=`<g aria-hidden="true"><rect x="${sx-8*f}" y="${sy-22*f}" width="${sb+16*f}" height="${32*f}" fill="var(--paper)" opacity=".85"/><line x1="${sx}" y1="${sy}" x2="${sx+sb}" y2="${sy}" stroke="var(--ink)" stroke-width="${3*f}"/><text x="${sx+sb/2}" y="${sy-8*f}" text-anchor="middle" font-size="${11.5*f}" fill="var(--ink2)">500 m</text>`+
+     `<path d="M ${W-26*f} ${16*f} l ${8*f} ${20*f} l ${-8*f} ${-5*f} l ${-8*f} ${5*f} z" fill="var(--ink)"/><text x="${W-26*f}" y="${50*f}" text-anchor="middle" font-size="${11.5*f}" font-weight="700" fill="var(--ink2)">N</text>`+
+     `<rect x="0" y="${H-22*f}" width="${(narrow?300:340)*f}" height="${22*f}" fill="var(--paper)" opacity=".85"/><text x="${8*f}" y="${H-8*f}" font-size="${(narrow?9:10)*f}" fill="var(--ink2)" paint-order="stroke" stroke="var(--paper)" stroke-width="${3*f}">© OpenStreetMap contributors (ODbL) · routing OSRM/FOSSGIS</text></g>`;
+  svg.innerHTML=s;$('#route').innerHTML=route;
+  svg.querySelectorAll('.pin').forEach(g=>{const go=()=>select(g.dataset.id,true);g.addEventListener('click',go);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});
+}
+function drawScatter(){
+  const t=T[lang],svg=$('#scatter'),Wd=narrow?420:760,Hd=narrow?330:380,ml=narrow?62:80,mr=20,mt=18,mb=46,xm=50,ym=Math.ceil(Math.max(...L.map(x=>x.total))/250)*250;
+  const X=v=>ml+v/xm*(Wd-ml-mr),Y=v=>Hd-mb-v/ym*(Hd-mt-mb);let s='';
+  for(let v=0;v<=ym;v+=narrow?500:250)s+=`<line x1="${ml}" x2="${Wd-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${ml-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--ink2)" font-family="JetBrains Mono, monospace">${v?eur(v):'0'}</text>`;
+  for(let v=0;v<=xm;v+=10)s+=`<line y1="${mt}" y2="${Hd-mb}" x1="${X(v)}" x2="${X(v)}" stroke="var(--line)"/><text x="${X(v)}" y="${Hd-mb+16}" text-anchor="middle" font-size="11" fill="var(--ink2)" font-family="JetBrains Mono, monospace">${v}</text>`;
+  s+=`<text x="${(ml+Wd-mr)/2}" y="${Hd-8}" text-anchor="middle" font-size="12" fill="var(--ink2)">${t.sc_x}</text><text transform="translate(14 ${(mt+Hd-mb)/2}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--ink2)">${t.sc_y}</text>`;
+  s+=`<text x="${ml+8}" y="${Hd-mb-10}" font-size="12" font-weight="600" fill="var(--ok)">↙ ${t.sc_hint}</text>`;
+  const v=new Set(vis().map(x=>x.id));
+  const r0=narrow?9:11,Q={};L.forEach(x=>Q[x.id]=[X(x.walk),Y(x.total)]);
+  for(let it=0;it<60;it++)for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const A=Q[L[i].id],B=Q[L[j].id];let dx=B[0]-A[0],dy=B[1]-A[1],d=Math.hypot(dx,dy)||.01,m=2*r0+2-d;if(m>0){dx/=d;dy/=d;A[0]-=dx*m/2;A[1]-=dy*m/2;B[0]+=dx*m/2;B[1]+=dy*m/2;}}
+  for(const x of L){const [px,py]=Q[x.id],tx=X(x.walk),ty=Y(x.total),out=!x.inside,bk=x.src==='Booking',r=r0;
+    if(Math.hypot(px-tx,py-ty)>3)s+=`<line x1="${tx}" y1="${ty}" x2="${px}" y2="${py}" stroke="var(--ink2)" stroke-width="1"/><circle cx="${tx}" cy="${ty}" r="2" fill="var(--ink2)"/>`;
+    const fill=out?'var(--paper)':'var(--accent)',stroke=out?'var(--bad)':'var(--paper)',tc=out?'var(--bad)':'var(--paper)';
+    const sh=bk?`<rect x="${px-r}" y="${py-r}" width="${2*r}" height="${2*r}" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`:`<circle cx="${px}" cy="${py}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    const sel=selected===x.id?`<circle cx="${px}" cy="${py}" r="${r+6}" fill="none" stroke="var(--warm)" stroke-width="3"/>`:'';
+    s+=`<g class="pin${v.has(x.id)?'':' dim'}" tabindex="0" role="button" data-id="${x.id}" aria-label="${x.n}. ${x.name.replace(/"/g,'')}: ${eur(x.total)}, ~${x.walk} min">${sel}${sh}<text x="${px}" y="${py+4}" text-anchor="middle" font-size="${narrow?10:11}" font-weight="700" font-family="JetBrains Mono, monospace" fill="${tc}">${x.n}</text></g>`;}
+  svg.setAttribute('viewBox',`0 0 ${Wd} ${Hd}`);svg.setAttribute('aria-label',t.h_scatter);svg.innerHTML=s;
+  svg.querySelectorAll('.pin').forEach(g=>{const go=()=>select(g.dataset.id,true);g.addEventListener('click',go);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});
+}
+function barClass(x){return !x.inside?'out':(x.src==='Booking'?'bnb':(isApt(x)?'':'room'))}
+function drawBars(){
+  const t=T[lang],list=vis().slice().sort((a,b)=>a.total-b.total),max=Math.ceil(Math.max(...L.map(x=>x.total))*1.3/250)*250,ticks=[];
+  for(let v=0;v<=max;v+=500)ticks.push(v);
+  $('#bars').innerHTML=list.map(x=>{const w=x.total/max*100;const split=x.src==='Booking'&&x.displayed&&x.displayed<x.total&&x.inside;const w1=split?x.displayed/max*100:w;return `<div class="lbl" title="${x.name}"><b>${x.n}</b>${x.name}</div><div class="track"><div class="bar ${barClass(x)}" style="width:${w1}%"></div>${split?`<div class="bar hatch" style="left:${w1}%;width:${w-w1}%" title="${t.bkgap}"></div>`:''}<span class="val" style="left:calc(${w}% + 6px)">${eur(x.total)} <span>· ${eur(x.night)}${t.per}</span></span></div>`}).join('')+
+  `<div class="axis">${ticks.map(v=>`<span style="left:${v/max*100}%">${v?eur(v):'0'}</span>`).join('')}</div>`;
+}
+function card(x){
+  const t=T[lang],d=dirs[lang];
+  const rt=x.rating?`${String(x.rating).replace('.',lang==='ro'?',':'.')}${x.scale===5?'/5':'/10'} · ${x.reviews} ${t.rev}`:t.norate;
+  const tags=[x.inside?`<span class="tag good">${t.in}</span>`:`<span class="tag bad">${t.out}</span>`,`<span class="tag">${x.dir==='Due Torri'?t.nearT:(lang==='ro'?'la '+d[x.dir]+' '+t.of:d[x.dir]+' '+t.of)}</span>`];
+  if(x.kitchen)tags.push(`<span class="tag">${t.kitchen}</span>`);if(x.ac)tags.push(`<span class="tag">${t.ac}</span>`);if(x.lift)tags.push(`<span class="tag">${t.lift}</span>`);
+  if(x.fc)tags.push(`<span class="tag good">${t.fc}${eur(x.fc)}</span>`);else if(x.src==='Booking')tags.push(`<span class="tag warn">${t.nonref}</span>`);
+  if(x.reviews!==null&&x.reviews<5)tags.push(`<span class="tag warn">${t.thin}</span>`);
+  const [note,cls]=taxNote(x,t);
+  const osm=`https://www.openstreetmap.org/?mlat=${x.lat}&mlon=${x.lng}#map=17/${x.lat}/${x.lng}`;
+  const numc=(x.inside?'':' out')+(x.src==='Booking'?' bk':'');
+  return `<article class="card${selected===x.id?' sel':''}" id="c-${x.id}">
+    <div class="ch"><span class="num${numc}">${x.n}</span><div><h3>${x.name}</h3><div class="meta">${x.src} · ${t.kinds[x.kind]}${x.details.length?' · '+x.details.join(' · '):''}</div></div></div>
+    <div class="price"><span class="big">${eur(x.total)}</span><span class="per">${eur(x.night)}${t.per} · ${eur(x.total/2)}${t.pp}</span></div>
+    <dl class="facts"><div><dt>${t.toFair}</dt><dd>~${x.walk} ${t.walk} · ${dec(x.dF)} ${t.km}</dd></div><div><dt>${t.rating}</dt><dd>${rt}</dd></div><div><dt>${t.src}</dt><dd>${x.src}, 24.09.2026</dd></div></dl>
+    <div class="tags">${tags.join('')}</div>
+    <div class="note ${cls}">${note}</div>
+    <div class="links"><a href="${x.url}" target="_blank" rel="noopener">${t.open}${x.src} ↗</a><button class="showmap" data-id="${x.id}">${t.showmap}</button><a href="${osm}" target="_blank" rel="noopener">${t.osm}</a></div></article>`;
+}
+function drawCards(){const s={price:(a,b)=>a.total-b.total,fiera:(a,b)=>a.dF-b.dF,rating:(a,b)=>(b.rating/b.scale)-(a.rating/a.scale)}[sortBy];$('#cards').innerHTML=vis().slice().sort(s).map(card).join('');
+  document.querySelectorAll('.showmap').forEach(b=>b.addEventListener('click',()=>{select(b.dataset.id,false);$('#map').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});}));}
+function select(id,scroll){selected=id;drawMap();drawScatter();document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',c.id==='c-'+id));const c=document.getElementById('c-'+id);if(scroll&&c)c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});}
+const li=(arr)=>arr.map(([txt,c,lab])=>`<li>${txt}${c?` <span class="st ${c}">${lab}</span>`:''}</li>`).join('');
+function render(){
+  const t=T[lang];document.documentElement.lang=lang;
+  document.querySelectorAll('[data-i]').forEach(e=>{const v=t[e.dataset.i];if(typeof v==='string')e.textContent=v;});
+  $('#f-all').textContent=`${t.all} (${L.length})`;
+  $('#tl').innerHTML=t.days.map(d=>`<div class="day ${d[3]}"><span class="d">${d[0]} · ${lang==='ro'?'apr.':'Apr'}</span><span class="n">${d[1]}</span><span class="t">${d[2]}</span></div>`).join('');
+  const ins=L.filter(x=>x.inside),a=ins.filter(isApt).map(x=>x.total),r=ins.filter(x=>x.kind==='room').map(x=>x.total);
+  const near=ins.filter(isApt).sort((p,q)=>p.walk-q.walk)[0],outs=L.filter(x=>!x.inside&&isApt(x)).sort((p,q)=>p.walk-q.walk)[0];
+  $('#insight').innerHTML=t.insight(`${eur(Math.min(...a))}–${eur(Math.max(...a))}`,`${eur(Math.min(...r))}–${eur(Math.max(...r))}`,near,outs);
+  $('#hidden').innerHTML=li(t.hidden.map(h=>[h[0],h[1],h[2]]));
+  $('#taxnotes').innerHTML=li(t.taxnotes.map(h=>[h[0],h[1],h[2]]));
+  $('#movenotes').innerHTML=li(t.movenotes.map(h=>[h[0],h[1],h[2]]));
+  $('#sources').textContent=t.sources;
+  drawMap();drawScatter();drawBars();drawCards();
+}
+function grp(ids,a){ids.forEach(i=>$('#'+i).setAttribute('aria-pressed',String(i===a)))}
+[['l-en','en'],['l-ro','ro']].forEach(([i,v])=>$('#'+i).addEventListener('click',()=>{lang=v;grp(['l-en','l-ro'],i);try{localStorage.setItem('ts-lang',v)}catch(e){}render();}));
+[['f-all','all'],['f-in','in'],['f-apt','apt']].forEach(([i,v])=>$('#'+i).addEventListener('click',()=>{filter=v;grp(['f-all','f-in','f-apt'],i);drawMap();drawScatter();drawBars();drawCards();}));
+[['s-price','price'],['s-fiera','fiera'],['s-rating','rating']].forEach(([i,v])=>$('#'+i).addEventListener('click',()=>{sortBy=v;grp(['s-price','s-fiera','s-rating'],i);drawCards();}));
+try{const s=localStorage.getItem('ts-lang');if(s==='ro'){lang='ro';grp(['l-en','l-ro'],'l-ro');}}catch(e){}
+render();
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawMap();drawScatter();},150);});
+})();
+</script>
+
+</body></html>

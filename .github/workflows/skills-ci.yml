@@ -1,0 +1,38 @@
+name: Skills CI
+
+# What this gate catches:
+# - check_skills.py: the Agent Skills spec plus the checks `gh skill publish` runs, so a
+#   broken skill fails here rather than at publish time or, worse, silently in a
+#   stranger's agent (a dangling file reference is a failed run nobody reports).
+# - sources.py check: the bundled source registry is what every install starts from; an
+#   invalid entry there is demoted to `untested` for every user of the release.
+# - the test suites: the linters, the registry tool and the PII hooks, including cases
+#   that must fail.
+# Triggers: every pull request (from this repository or a fork) and every push to main,
+# once each. A job-level skip for same-repo PRs was tried and dropped: a skipped job still
+# posts a passing check of the same name, which could hide a failed push run.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Skill structure (spec + gh skill publish checks)
+        run: python3 .github/scripts/check_skills.py
+      - name: Bundled source registry
+        # No overlay in CI: point it at an empty folder so only bundled entries are checked.
+        run: TRIP_SCOUT_HOME="$RUNNER_TEMP/empty-overlay" python3 skills/trip-scout/scripts/sources.py check
+      - name: Linter tests
+        run: python3 .github/scripts/test_check_skills.py
+      - name: Registry tool tests
+        run: python3 tests/test_sources.py
+      - name: PII hook tests (the hooks are copied from ex-cog-dev; this keeps them honest here)
+        run: bash .githooks/pre-push.test.sh

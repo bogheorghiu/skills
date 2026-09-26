@@ -1,0 +1,14 @@
+streets.js and routes.js contain data derived from OpenStreetMap.
+© OpenStreetMap contributors. Available under the Open Database License (ODbL) 1.0:
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Routes were computed with OSRM on routing.openstreetmap.de (FOSSGIS) on 2026-09-25.
+Found an error in the map data? https://www.openstreetmap.org/fixthemap
+
+Why the ODbL applies: streets.js is a town-scale extract (1,108 ways) kept as data,
+which the OSMF Substantial and Produced Work guidelines treat as a database, not a
+produced work. See skills/trip-scout/reference/legal.md, section Maps.
+
+The rest of this folder (index.html, data.js) is under the MIT license in
+skills/trip-scout/LICENSE. Neither that license nor the repository's root license
+covers streets.js or routes.js.
