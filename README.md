@@ -42,9 +42,8 @@ tests/                 tests for the scripts (not shipped with the skill)
 
 ## Licences
 
-- `skills/trip-scout/` and the demo's code: MIT ([`skills/trip-scout/LICENSE`](skills/trip-scout/LICENSE)).
-- `examples/bologna-bcbf-2027/streets.js` and `routes.js`: derived from OpenStreetMap, © OpenStreetMap contributors, under the [ODbL](https://opendatacommons.org/licenses/odbl/1-0/) ([`DATA-LICENSE`](examples/bologna-bcbf-2027/DATA-LICENSE)).
-- Anything else in this repository: Apache-2.0 ([`LICENSE`](LICENSE)).
+- Everything in this repository: MIT ([`LICENSE`](LICENSE)). The skill carries its own copy ([`skills/trip-scout/LICENSE`](skills/trip-scout/LICENSE)), so an install that takes only the skill folder keeps it.
+- Except `examples/bologna-bcbf-2027/streets.js` and `routes.js`: derived from OpenStreetMap, © OpenStreetMap contributors, under the [ODbL](https://opendatacommons.org/licenses/odbl/1-0/) ([`DATA-LICENSE`](examples/bologna-bcbf-2027/DATA-LICENSE)), which the data's source requires.
 
 ## Contributing
 
