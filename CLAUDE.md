@@ -24,7 +24,7 @@ Tag load-bearing claims GROUNDED (the fact's own record: the court docket, the l
 
 ## Checks
 
-CI (`.github/workflows/`) runs the spec checks, the bundled-source check and the test suites on every pull request and every push to main (`skills-ci.yml`), plus the PII and secrets guard (`pii-denylist-guard.yml`; its header says what each job scans). Run the same commands locally before pushing (the README lists them). A green CI run shows the scripts and the structure are sound; it says nothing about whether the prose still steers an agent correctly. For that, see `.claude/rules/verify-skill-changes.md`, and name the level of verification you actually ran.
+CI (`.github/workflows/`) runs the spec checks, the bundled-source check and the test suites on every pull request and every push to `main` or `dev` (`skills-ci.yml`), plus the PII and secrets guard (`pii-denylist-guard.yml`; its header says what each job scans). Run the same commands locally before pushing (the README lists them). A green CI run shows the scripts and the structure are sound; it says nothing about whether the prose still steers an agent correctly. For that, see `.claude/rules/verify-skill-changes.md`, and name the level of verification you actually ran.
 
 ## Privacy
 
